@@ -1,0 +1,4 @@
+idf_component_register(SRCS "i2c_driver.cpp" "main.cpp"
+                       PRIV_REQUIRES spi_flash
+                       PRIV_REQUIRES esp_driver_i2c
+                       INCLUDE_DIRS "")
