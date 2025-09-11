@@ -11,6 +11,26 @@
 #include "esp_system.h"
 #include "i2c_driver.h"
 
+#include <stdio.h> 
+#include <inttypes.h> 
+#include "esp_log.h" 
+#include <string> 
+#include <vector> 
+#include <sstream> 
+#include <cmath>
+
+//sets up flashing all of the coefficient files
+extern const uint8_t _binary_PolyCoefficients_txt_start[] asm("_binary_PolyCoefficients_txt_start"); 
+extern const uint8_t _binary_PolyCoefficients_txt_end[] asm("_binary_PolyCoefficients_txt_end");
+extern const uint8_t _binary_PIDCoefficients_txt_start[] asm("_binary_PIDCoefficients_txt_start");
+extern const uint8_t _binary_PIDCoefficients_txt_end[]   asm("_binary_PIDCoefficients_txt_end");
+
+// Simple struct to hold PID coefficients
+struct PID {
+    float Kp;
+    float Ki;
+};
+
 void print_info()
 {
     printf("Hello world! This is the Samsung Lime Treatment system, on the ESP32 MCU.\n");
