@@ -129,7 +129,7 @@ extern "C" void app_main(void)
 
     float pCorrection = selectedPID.Kp * errMeasured;
     float iCorrection = selectedPID.Ki * errMeasured;
-    float offset = pCorrectin + iCorrection;
+    float offset = pCorrection + iCorrection;
     float CorrectLimeFlow = outputLimeDosage;
     
     
