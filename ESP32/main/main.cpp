@@ -77,6 +77,61 @@ void reboot()
 extern "C" void app_main(void)
 {
     print_info();
+
+    //TESTING COMPUTATIONAL MODEL
+    double inputFluoride = 350; 
+    printf("Input Fluoride = %f ppm\n", inputFluoride);
+
+    //TEST POLYNOMIAL ARITHMETIC
+    size_t length = _binary_PolyCoefficients_txt_end - _binary_PolyCoefficients_txt_start; 
+    ESP_LOGI("EMBED", "PolyCoefficients.txt size = %d bytes", (int)length);
+
+    // Put file contents into a std::string 
+    std::string fileContent(reinterpret_cast<const char*>(_binary_PolyCoefficients_txt_start), length);
+
+    // Parse into floats 
+    std::vector<float> coefficients; 
+    std::stringstream ss(fileContent); 
+    float value; while (ss >> value) { coefficients.push_back(value); } 
+    double outputLimeDosage = coefficients[0] * pow(inputFluoride, 3) + coefficients[1] * pow(inputFluoride, 2) + 
+    coefficients[2] * pow(inputFluoride, 1) + coefficients[3]; 
+    printf("Output Lime Dosage = %f mL/s\n", outputLimeDosage);
+
+    // Testing PID Logic
+    // Example measured error
+    float measuredFluoride = 45; //ppm, data from sensor
+    float targetFluoride = 30; //ppm, target
+
+    float errMeasured = measuredFluoride - targetFluoride;
+
+    float dt = 1; //s, time between fluoride sensor measurements
+    // 1) Load PID coefficients from embedded array
+    size_t pidLength = _binary_PIDCoefficients_txt_end - _binary_PIDCoefficients_txt_start;
+    std::string pidFileContent(reinterpret_cast<const char*>(_binary_PIDCoefficients_txt_start), pidLength);
+
+    std::vector<PID> pidTable;
+    std::stringstream pidSS(pidFileContent);
+    float Kp, Ki;
+    while (pidSS >> Kp >> Ki) {
+        pidTable.push_back({Kp, Ki});
+    }
+
+    // 2) Map measured error to nearest index
+    int errorMin = -50;  // assuming file starts at -50 ppm
+    int idx = static_cast<int>(round(errMeasured)) - errorMin;
+ 
+    // Safety checks
+    if (idx < 0) idx = 0;
+    if (idx >= pidTable.size()) idx = pidTable.size() - 1;
+
+    // 3) Get PID coefficients
+    PID selectedPID = pidTable[idx];
+
+    float pCorrection = selectedPID.Kp * errMeasured;
+    float iCorrection = selectedPID.Ki * errMeasured;
+    float offset = pCorrectin + iCorrection;
+    float CorrectLimeFlow = outputLimeDosage;
+    
     
     // test i2c code
     I2C_Driver::i2c_init();
