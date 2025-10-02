@@ -19,6 +19,8 @@
 #include <sstream> 
 #include <cmath>
 
+#include "database.cpp"
+
 //sets up flashing all of the coefficient files
 extern const uint8_t _binary_PolyCoefficients_txt_start[] asm("_binary_PolyCoefficients_txt_start"); 
 extern const uint8_t _binary_PolyCoefficients_txt_end[] asm("_binary_PolyCoefficients_txt_end");
@@ -77,7 +79,11 @@ void reboot()
 extern "C" void app_main(void)
 {
     print_info();
-    start_database();
+
+    // TEST MATTHEW DATABASE
+    database_app_main();
+
+    reboot();
 
     //TESTING COMPUTATIONAL MODEL
     double inputFluoride = 350; 

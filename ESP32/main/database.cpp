@@ -1,5 +1,3 @@
-#include "database.h"
-
 //WIFICONNECTION CODE:
 
 #include <stdio.h>
@@ -226,7 +224,7 @@ static void my_Event_Handler(void* myArg, esp_event_base_t theBase, int32_t theI
 
 
        
-       printf(returnFlouride());
+       //printf(returnFlouride());
     }
 }
 
@@ -492,7 +490,7 @@ esp_http_client_cleanup(myVar2);//cleans up this instance.
 
 
 
-extern "C" void app_main(void) //extern C is used here, to ensure that C++ does work for this project.
+void database_app_main(void) //extern C is used here, to ensure that C++ does work for this project.
 {
 
 
