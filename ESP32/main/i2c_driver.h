@@ -19,7 +19,7 @@ class I2C_Driver
 {
     public:
         // internal functions
-        static bool i2c_ready;
+        static volatile bool i2c_ready;
         static i2c_master_bus_handle_t bus_handle;
         static i2c_master_dev_handle_t valve_select_handle;
         static i2c_master_dev_handle_t duty_cycle_select_handle;
@@ -30,8 +30,8 @@ class I2C_Driver
         static void i2c_loop();
 
         // to be used externally
-        static double duty_cycle_1;
-        static double duty_cycle_2;
+        static volatile double duty_cycle_1;
+        static volatile double duty_cycle_2;
 
         static void set_duty_cycle_1(double dc);
         static void set_duty_cycle_2(double dc);

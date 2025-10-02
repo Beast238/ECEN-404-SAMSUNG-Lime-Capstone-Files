@@ -10,7 +10,6 @@
 #include "esp_flash.h"
 #include "esp_system.h"
 #include "i2c_driver.h"
-#include "driver/adc.h"
 
 #include <stdio.h> 
 #include <inttypes.h> 
@@ -21,6 +20,7 @@
 #include <cmath>
 
 #include "database.cpp"
+#include "pH_driver.cpp"
 
 //sets up flashing all of the coefficient files
 extern const uint8_t _binary_PolyCoefficients_txt_start[] asm("_binary_PolyCoefficients_txt_start"); 
@@ -77,29 +77,9 @@ void reboot()
     esp_restart();
 }
 
-double read_adc()
-{
-    adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_2_5);
-    double sumOfReadings = 0;
-    int numReadings = 100;
-    for (int i = 0; i < numReadings; i++) // take 100 readings and average
-    {
-        sumOfReadings += adc1_get_raw(ADC1_CHANNEL_0);
-        vTaskDelay(10 / portTICK_PERIOD_MS); // small delay between readings
-    }
-    double averageOfReadings = sumOfReadings / numReadings;
-    return averageOfReadings;
-}
-
 extern "C" void app_main(void)
 {
     print_info();
-
-    // TEST MATTHEW DATABASE
-    database_app_main();
-
-    reboot();
 
     //TESTING COMPUTATIONAL MODEL
     double inputFluoride = 350; 
@@ -155,36 +135,38 @@ extern "C" void app_main(void)
     float offset = pCorrection + iCorrection;
     float CorrectLimeFlow = outputLimeDosage;
     
+    // TEST MATTHEW DATABASE
+    if (true)
+    {
+        database_app_main();
+    }
+
     // test ADC
     if (false)
     {
-        while (true)
-        {
-            double val = read_adc();
-            // val = (-160 * pH) + 2861 // pH calibration curve results
-            double pH = (val - 2861) / -160; // pH calibration curve results    
-            printf("%f\n", val);
-            printf("%f\n", pH);
-        }
+        pH_driver_init();
     }
     
     // test i2c code
-    /*
-    I2C_Driver::i2c_init();
-    printf("\nBooted up.\n0, 0 for 10 seconds\n");
+    if (false)
+    {
+        I2C_Driver::i2c_init();
+        printf("\nBooted up.\n0, 0 for 10 seconds\n");
 
-    vTaskDelay(10000 / portTICK_PERIOD_MS);
-    I2C_Driver::set_duty_cycle_1(0.75);
-    I2C_Driver::set_duty_cycle_2(0.25);
-    printf("\n0.75, 0.25 for 10 seconds\n");
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        I2C_Driver::set_duty_cycle_1(0.75);
+        I2C_Driver::set_duty_cycle_2(0.25);
+        printf("\n0.75, 0.25 for 10 seconds\n");
 
-    vTaskDelay(10000 / portTICK_PERIOD_MS);
-    I2C_Driver::set_duty_cycle_1(1);
-    I2C_Driver::set_duty_cycle_2(1);
-    printf("\n1, 1 for 10 seconds\n");
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        I2C_Driver::set_duty_cycle_1(1);
+        I2C_Driver::set_duty_cycle_2(1);
+        printf("\n1, 1 for 10 seconds\n");
 
-    // shut down everything
-    printf("\nAll done.\n");
-    I2C_Driver::i2c_deinit();*/
-    //reboot();
+        // shut down everything
+        printf("\nAll done.\n");
+        I2C_Driver::i2c_deinit();
+    }
+
+    reboot();
 }

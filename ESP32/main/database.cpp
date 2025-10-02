@@ -1,3 +1,7 @@
+/*
+    Property of Texas A&M University. All rights reserved.
+*/
+
 //WIFICONNECTION CODE:
 
 #include <stdio.h>
