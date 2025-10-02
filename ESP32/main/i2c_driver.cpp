@@ -4,12 +4,12 @@
 
 #include "i2c_driver.h"
 
-bool I2C_Driver::i2c_ready = 0;
+volatile bool I2C_Driver::i2c_ready = 0;
 i2c_master_bus_handle_t I2C_Driver::bus_handle;
 i2c_master_dev_handle_t I2C_Driver::valve_select_handle;
 i2c_master_dev_handle_t I2C_Driver::duty_cycle_select_handle;
-double I2C_Driver::duty_cycle_1 = 0;
-double I2C_Driver::duty_cycle_2 = 0;
+volatile double I2C_Driver::duty_cycle_1 = 0;
+volatile double I2C_Driver::duty_cycle_2 = 0;
 
 void I2C_Driver::set_duty_cycle_1(double dc) { I2C_Driver::duty_cycle_1 = dc; }
 void I2C_Driver::set_duty_cycle_2(double dc) { I2C_Driver::duty_cycle_2 = dc; }
