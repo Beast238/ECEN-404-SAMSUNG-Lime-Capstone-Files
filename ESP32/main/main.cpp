@@ -77,6 +77,7 @@ void reboot()
 extern "C" void app_main(void)
 {
     print_info();
+    start_database();
 
     //TESTING COMPUTATIONAL MODEL
     double inputFluoride = 350; 
