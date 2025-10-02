@@ -10,6 +10,7 @@
 #include "esp_flash.h"
 #include "esp_system.h"
 #include "i2c_driver.h"
+#include "driver/adc.h"
 
 #include <stdio.h> 
 #include <inttypes.h> 
@@ -76,6 +77,21 @@ void reboot()
     esp_restart();
 }
 
+double read_adc()
+{
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_2_5);
+    double sumOfReadings = 0;
+    int numReadings = 100;
+    for (int i = 0; i < numReadings; i++) // take 100 readings and average
+    {
+        sumOfReadings += adc1_get_raw(ADC1_CHANNEL_0);
+        vTaskDelay(10 / portTICK_PERIOD_MS); // small delay between readings
+    }
+    double averageOfReadings = sumOfReadings / numReadings;
+    return averageOfReadings;
+}
+
 extern "C" void app_main(void)
 {
     print_info();
@@ -139,8 +155,21 @@ extern "C" void app_main(void)
     float offset = pCorrection + iCorrection;
     float CorrectLimeFlow = outputLimeDosage;
     
+    // test ADC
+    if (false)
+    {
+        while (true)
+        {
+            double val = read_adc();
+            // val = (-160 * pH) + 2861 // pH calibration curve results
+            double pH = (val - 2861) / -160; // pH calibration curve results    
+            printf("%f\n", val);
+            printf("%f\n", pH);
+        }
+    }
     
     // test i2c code
+    /*
     I2C_Driver::i2c_init();
     printf("\nBooted up.\n0, 0 for 10 seconds\n");
 
@@ -156,6 +185,6 @@ extern "C" void app_main(void)
 
     // shut down everything
     printf("\nAll done.\n");
-    I2C_Driver::i2c_deinit();
-    reboot();
+    I2C_Driver::i2c_deinit();*/
+    //reboot();
 }

@@ -86,11 +86,11 @@ void I2C_Driver::i2c_loop()
     while (true)
     {
         if (!I2C_Driver::i2c_ready) break;
-        I2C_Driver::i2c_select_valve(1);
-        I2C_Driver::i2c_set_duty_cycle(I2C_Driver::duty_cycle_1);
+        I2C_Driver::i2c_select_valve(1); // write 0x00 0x01 to 0x70 and read back
+        I2C_Driver::i2c_set_duty_cycle(I2C_Driver::duty_cycle_1); // write 0x00 0xXX to 0x48 and read back
 
-        I2C_Driver::i2c_select_valve(2);
-        I2C_Driver::i2c_set_duty_cycle(I2C_Driver::duty_cycle_2);
+        I2C_Driver::i2c_select_valve(2); // write 0x00 0x01 to 0x70 and read back
+        I2C_Driver::i2c_set_duty_cycle(I2C_Driver::duty_cycle_2); // write 0x00 0xXX to 0x48 and read back
 
         vTaskDelay(100 / portTICK_PERIOD_MS); // execute approximately 10 times a second
     }
@@ -114,9 +114,9 @@ void I2C_Driver::i2c_init()
     i2c_mst_config.clk_source = I2C_CLK_SRC_DEFAULT,
     i2c_mst_config.glitch_ignore_cnt = 7;
     i2c_mst_config.intr_priority = 0;
-    i2c_mst_config.trans_queue_depth = 0;
-    i2c_mst_config.flags.enable_internal_pullup = false;
-    i2c_mst_config.flags.allow_pd = false;
+    i2c_mst_config.trans_queue_depth = 0; // synchronous only
+    i2c_mst_config.flags.enable_internal_pullup = false; // pull-up resistors are installed on driving board
+    i2c_mst_config.flags.allow_pd = false; // fails if true
 
     esp_err_t err = i2c_new_master_bus(&i2c_mst_config, &I2C_Driver::bus_handle);
     if (err != ESP_OK)
@@ -129,14 +129,14 @@ void I2C_Driver::i2c_init()
 
     i2c_device_config_t valve_select_cfg;
     valve_select_cfg.dev_addr_length = I2C_ADDR_BIT_LEN_7;
-    valve_select_cfg.device_address = 0x70;
+    valve_select_cfg.device_address = 0x70; // 0x70 = I2C bus switch
     valve_select_cfg.scl_speed_hz = 100000; // 100 kHz
     valve_select_cfg.scl_wait_us = 0;
     valve_select_cfg.flags.disable_ack_check = 0;
 
     i2c_device_config_t duty_cycle_select_cfg;
     duty_cycle_select_cfg.dev_addr_length = I2C_ADDR_BIT_LEN_7;
-    duty_cycle_select_cfg.device_address = 0x48;
+    duty_cycle_select_cfg.device_address = 0x48; // 0x48 = all DACs (bus switch controls which DAC to use)
     duty_cycle_select_cfg.scl_speed_hz = 100000; // 100 kHz
     duty_cycle_select_cfg.scl_wait_us = 0;
     duty_cycle_select_cfg.flags.disable_ack_check = 0;
