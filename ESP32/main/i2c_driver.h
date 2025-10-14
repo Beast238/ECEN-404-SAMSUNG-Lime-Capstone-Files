@@ -12,8 +12,8 @@
 #include "esp_system.h"
 #include "driver/i2c_master.h"
 
-#define I2C_MASTER_SCL_IO    19    /*!< gpio number for I2C master clock */
-#define I2C_MASTER_SDA_IO    18    /*!< gpio number for I2C master data  */
+#define I2C_MASTER_SCL_IO    22    /*!< gpio number for I2C master clock */
+#define I2C_MASTER_SDA_IO    21    /*!< gpio number for I2C master data  */
 
 class I2C_Driver
 {
