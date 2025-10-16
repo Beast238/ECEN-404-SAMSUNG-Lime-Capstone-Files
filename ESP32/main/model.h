@@ -8,6 +8,7 @@ extern "C" {
 // Define EXACTLY ONCE in the sensor/MCU reader module as:
 //     volatile float g_fluoride_ppm = NAN;
 extern volatile float g_fluoride_ppm;
+extern volatile float g_flow_rate;
 
 // Call once at boot. Loads polynomial + PID tables from embedded files.
 void model_init(void);

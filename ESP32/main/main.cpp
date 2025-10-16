@@ -92,7 +92,7 @@ extern "C" void app_main(void)
     //xTaskCreatePinnedToCore(test_setter_task, "test_setter", 2048, nullptr, 5, nullptr, tskNO_AFFINITY);
 
     // database/GUI
-    xTaskCreate((TaskFunction_t)(database_app_main), "database_app_main", 4096, NULL, 2, NULL);
+    xTaskCreate((TaskFunction_t)(database_app_main_loop), "database_app_main_loop", 4096, NULL, 2, NULL);
 
     // pH driver/ADC
     pH_driver_init();
@@ -118,5 +118,5 @@ extern "C" void app_main(void)
         I2C_Driver::i2c_deinit();
     }
 
-    reboot();
+    //reboot();
 }

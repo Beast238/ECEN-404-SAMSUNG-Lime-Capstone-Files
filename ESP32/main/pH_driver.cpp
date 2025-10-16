@@ -35,7 +35,7 @@ void pH_driver_loop()
         double val = pH_driver_single_read();
         double pH = (val - 2861) / -160; // pH calibration curve results    
         //printf("%f\n", val);
-        printf("%f\n", pH);
+        printf("PH: %f\n", pH);
 
         currentpH = pH;
     }

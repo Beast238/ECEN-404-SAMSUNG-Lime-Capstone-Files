@@ -23,6 +23,7 @@ static const char* TAG = "MODEL";
 //     volatile float g_fluoride_ppm = NAN;
 extern "C" {
     volatile float g_fluoride_ppm = NAN;
+    volatile float g_flow_rate = NAN;
 }
 
 // ========== Embedded coefficient blobs (linker symbols) ==========
@@ -222,6 +223,8 @@ static void run_model_from_fluoride(float fluoride_ppm)
     if (u < DOSE_MIN_FLOOR) u = DOSE_MIN_FLOOR;
     if (u > DOSE_MAX)       u = DOSE_MAX;
 
+    g_flow_rate = u;
+
     // Shift history
     s_prev2_err = s_prev_err;
     s_prev_err  = err;
@@ -231,6 +234,8 @@ static void run_model_from_fluoride(float fluoride_ppm)
              "PID inc | Fpred=%.3f | err=%.3f | dt=%.3fs | Kp=%.4f Ki=%.5f | "
              "dP=%.5f dI=%.5f | cmd=%.6f mL/s",
              Fpred_ppm, err, dt, Kp, Ki, dP, dI, u);
+
+        
 }
 
 static void fluoride_watch_task(void* /*arg*/)

@@ -6,6 +6,7 @@
 
 //WIFICONNECTION CODE:
 #include "model.h"
+#include "pH_driver.h"
 #include <iostream>//included for couts.
 #include <stdio.h>
 #include <stdlib.h>//used for double conversions.
@@ -748,18 +749,19 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
                 stringFluoride = stringFluoride.substr(1, stringFluoride.length() - 1);
                 float floatFluoride = std::stof(stringFluoride);
                 g_fluoride_ppm = floatFluoride;
+                printf("Fluoride: %f\n", g_fluoride_ppm);
                 
 
                
 
 
         
-        double mypHVal=0; //represents pHValue for the current looprun
-        double myVal2=0; //represents limedispension value for the current looprun
+        double mypHVal = currentpH; //represents pHValue for the current looprun
+        double myVal2 = g_flow_rate; //represents limedispension value for the current looprun
        
-        mypHVal=randompHGen();//declares randomly generated pH value. This will change with integration code.....
+        //mypHVal=randompHGen();//declares randomly generated pH value. This will change with integration code.....
         //do{
-        myVal2=limedispenGen(); //declares randomly generated lime dispension value. This will change with integration code.....
+        //myVal2=limedispenGen(); //declares randomly generated lime dispension value. This will change with integration code.....
             
 
         //break;
@@ -787,10 +789,14 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
     }
 
     }
-    
-
-
 }
 
 
-
+void database_app_main_loop()
+{
+    while (true)
+    {
+        database_app_main();
+    }
+    vTaskDelete(NULL);
+}
