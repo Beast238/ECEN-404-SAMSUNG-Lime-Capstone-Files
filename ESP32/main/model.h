@@ -4,6 +4,11 @@
 extern "C" {
 #endif
 
+// ================= External fluoride value =================
+// Define EXACTLY ONCE in the sensor/MCU reader module as:
+//     volatile float g_fluoride_ppm = NAN;
+extern volatile float g_fluoride_ppm;
+
 // Call once at boot. Loads polynomial + PID tables from embedded files.
 void model_init(void);
 

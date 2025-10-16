@@ -42,7 +42,7 @@
 #include "lwip/sys.h"//may need this not too sure.... Is related to abstract event stuff.
 //static EventGroupHandle_t s_wifi_event_group;//this is done to essentially set more indicators of state of the current wifi connection.
 //For example, bit0 may represent connected, bit1 as disconnected, bit2 as getting IP address, etc.
-#include "mbedtls/esp_debug.h"
+//#include "mbedtls/esp_debug.h"
 
 //This top code shall represent the general system requirements of the Wifi connection
 
@@ -743,7 +743,7 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
             for(int i=0;i<20;i++) {//Continously sends values to database for specific amount of time.
                 //the upper bound here can be changed based on length of how long values should send for.
             
-                char* cstringFluoride = returnFlouride();
+                char* cStringFluoride = returnFlouride();
                 std::string stringFluoride = cStringFluoride;
                 stringFluoride = stringFluoride.substr(1, stringFluoride.length() - 1);
                 float floatFluoride = std::stof(stringFluoride);

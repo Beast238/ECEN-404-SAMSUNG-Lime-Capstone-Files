@@ -11,6 +11,7 @@
 #include "freertos/task.h"
 
 volatile bool pH_driver_ready = 0;
+volatile double currentpH = 0;
 
 double pH_driver_single_read()
 {

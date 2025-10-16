@@ -2,8 +2,7 @@
     Property of Texas A&M University. All rights reserved.
 */
 
-#ifndef I2CDRIVER_H
-#define I2CDRIVER_H
+#pragma once
 
 #include <stdlib.h>
 #include "sdkconfig.h"
@@ -39,5 +38,3 @@ class I2C_Driver
         static void i2c_deinit();
 };
 
-
-#endif /* I2CDRIVER_H */

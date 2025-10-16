@@ -22,7 +22,7 @@ static const char* TAG = "MODEL";
 // Define EXACTLY ONCE in the sensor/MCU reader module as:
 //     volatile float g_fluoride_ppm = NAN;
 extern "C" {
-    extern volatile float g_fluoride_ppm;
+    volatile float g_fluoride_ppm = NAN;
 }
 
 // ========== Embedded coefficient blobs (linker symbols) ==========

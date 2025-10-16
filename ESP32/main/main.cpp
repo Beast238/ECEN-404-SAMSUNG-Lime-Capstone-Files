@@ -23,9 +23,6 @@
 #include "pH_driver.h"
 #include "model.h"
 
-extern "C" volatile float g_fluoride_ppm = NAN;  // DEFINITION for test
-
-
 void print_info()
 {
     printf("Hello world! This is the Samsung Lime Treatment system, on the ESP32 MCU.\n");
