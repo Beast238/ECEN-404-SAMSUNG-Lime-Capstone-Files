@@ -1,4 +1,4 @@
-idf_component_register(SRCS "pH_driver.cpp" "database.cpp" "i2c_driver.cpp" "main.cpp"
+idf_component_register(SRCS "pH_driver.cpp" "database.cpp" "i2c_driver.cpp" "main.cpp" "model.cpp"
                        PRIV_REQUIRES spi_flash
                        PRIV_REQUIRES esp_driver_i2c
                        PRIV_REQUIRES esp_wifi
