@@ -48,9 +48,6 @@
 #define WIFI_PASS "" //this is the Wifi Password. For TAMU_IoT, there is no need for password.
 
 
-//#define WIFI_SSID "ARRIS-2471" //this represents the wifi for it be connected to
-//#define WIFI_PASS "373000704518" //this is the Wifi Password. For TAMU_IoT, there is no need for password.
-
 //Wifi Event start just means that the wifi will be successfully started up.
 //Wifi Event disconnected just means that wifi lost connection.
 
