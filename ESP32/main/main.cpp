@@ -92,7 +92,7 @@ extern "C" void app_main(void)
     model_start_watcher_task();             // <-- start the watcher
     
     // Launch the one-shot setter
-    // xTaskCreatePinnedToCore(test_setter_task, "test_setter", 2048, nullptr, 5, nullptr, tskNO_AFFINITY);
+    xTaskCreatePinnedToCore(test_setter_task, "test_setter", 2048, nullptr, 5, nullptr, tskNO_AFFINITY);
     
     // TEST MATTHEW DATABASE
     if (true)
