@@ -20,7 +20,7 @@
 #include <cmath>
 
 #include "database.cpp"
-#include "pH_driver.cpp"
+#include "pH_driver.h"
 #include "model.h"
 
 extern "C" volatile float g_fluoride_ppm = NAN;  // DEFINITION for test
@@ -85,28 +85,22 @@ extern "C" void app_main(void)
 {
     print_info();
 
-    //Ryon Model
+    // Ryon Model
     model_init();
     model_set_target_ppm(30.0f);
     model_set_change_threshold_ppm(0.0f);   // trigger on any change
     model_start_watcher_task();             // <-- start the watcher
     
     // Launch the one-shot setter
-    xTaskCreatePinnedToCore(test_setter_task, "test_setter", 2048, nullptr, 5, nullptr, tskNO_AFFINITY);
-    
-    // TEST MATTHEW DATABASE
-    if (true)
-    {
-        database_app_main();
-    }
+    //xTaskCreatePinnedToCore(test_setter_task, "test_setter", 2048, nullptr, 5, nullptr, tskNO_AFFINITY);
 
-    // test ADC
-    if (true)
-    {
-        pH_driver_init();
-    }
+    // database/GUI
+    xTaskCreate((TaskFunction_t)(database_app_main), "database_app_main", 4096, NULL, 2, NULL);
+
+    // pH driver/ADC
+    pH_driver_init();
     
-    // test i2c code
+    // I2C driver
     if (true)
     {
         I2C_Driver::i2c_init();

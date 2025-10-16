@@ -2,8 +2,10 @@
     Property of Texas A&M University. All rights reserved.
 */
 
+#pragma once
+
 //WIFICONNECTION CODE:
-#include "database.h"
+#include "model.h"
 #include <iostream>//included for couts.
 #include <stdio.h>
 #include <stdlib.h>//used for double conversions.
@@ -675,7 +677,7 @@ double limedispenGen() { //This function will be used in 403. It is used to rand
 }
 
 
-extern "C" void app_main(void) //extern C is used here, to ensure that C++ does work for this project.
+void database_app_main(void) //extern C is used here, to ensure that C++ does work for this project.
 {
     
   
@@ -744,8 +746,11 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
             for(int i=0;i<20;i++) {//Continously sends values to database for specific amount of time.
                 //the upper bound here can be changed based on length of how long values should send for.
             
-
-                printf(returnFlouride());
+                char* cstringFluoride = returnFlouride();
+                std::string stringFluoride = cStringFluoride;
+                stringFluoride = stringFluoride.substr(1, stringFluoride.length() - 1);
+                float floatFluoride = std::stof(stringFluoride);
+                g_fluoride_ppm = floatFluoride;
                 
 
                

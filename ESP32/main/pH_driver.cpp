@@ -2,8 +2,7 @@
     Property of Texas A&M University. All rights reserved.
 */
 
-#ifndef PHDRIVER_CPP
-#define PHDRIVER_CPP
+#include "pH_driver.h"
 
 #include <stdlib.h>
 #include "sdkconfig.h"
@@ -34,8 +33,10 @@ void pH_driver_loop()
     {
         double val = pH_driver_single_read();
         double pH = (val - 2861) / -160; // pH calibration curve results    
-        printf("%f\n", val);
+        //printf("%f\n", val);
         printf("%f\n", pH);
+
+        currentpH = pH;
     }
     vTaskDelete(NULL);
 }
@@ -50,5 +51,3 @@ void pH_driver_deinit()
 {
     pH_driver_ready = 0;
 }
-
-#endif /* PHDRIVER_CPP */
