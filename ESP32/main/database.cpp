@@ -3,16 +3,23 @@
 */
 
 //WIFICONNECTION CODE:
-
+#include "database.h"
+#include <iostream>//included for couts.
 #include <stdio.h>
-
+#include <stdlib.h>//used for double conversions.
+#include <sys/time.h>//header for esp system time setting
+#include <time.h>//system header.
 
 //the following three delcarations are related to the FreeRTOS library.
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 
+#include "esp_timer.h"//done for esp clock timer.
 
+#include "esp_netif_sntp.h"//SNTP Time to be used here.
+
+#include <random>//used for random numbers.
 #include "esp_wifi.h" //The Wifi library is used for monitoring and configuring specific settings. This is the most imporant library for this program
 //For reference, the MCU from this program will be station based. Station based means that it will connect to a common wifi network(either TAMU Wifi or TAMU IOT), and use this network. 
 //It needs to do this to connect to Firebase, as Firebase is also on Wifi
@@ -28,17 +35,21 @@
 #include "esp_system.h" //General ESP32 system commands
 
 
-//lwip represents the network type.
+//lwip represents the network interface type.
 #include "lwip/err.h"//includes error types from lwip library
 #include "lwip/sys.h"//may need this not too sure.... Is related to abstract event stuff.
 //static EventGroupHandle_t s_wifi_event_group;//this is done to essentially set more indicators of state of the current wifi connection.
 //For example, bit0 may represent connected, bit1 as disconnected, bit2 as getting IP address, etc.
-
+#include "mbedtls/esp_debug.h"
 
 //This top code shall represent the general system requirements of the Wifi connection
 
 #define WIFI_SSID "TAMU_IoT" //this represents the wifi for it be connected to
 #define WIFI_PASS "" //this is the Wifi Password. For TAMU_IoT, there is no need for password.
+
+
+//#define WIFI_SSID "ARRIS-2471" //this represents the wifi for it be connected to
+//#define WIFI_PASS "373000704518" //this is the Wifi Password. For TAMU_IoT, there is no need for password.
 
 //Wifi Event start just means that the wifi will be successfully started up.
 //Wifi Event disconnected just means that wifi lost connection.
@@ -71,17 +82,85 @@
 //#include <curl/curl.h>
 #include <thread>
 
+#include "esp_crt_bundle.h" //this is included for allowing the server verification bundle.
+//This is ESPIDFs onboard bundle that is compatible with server connections.
+
+#include "esp_task_wdt.h"//represents wdt task
 
 
 bool gotIp=false;
 
+//These functions are taken from c++ program made in 403. They are EXACTLY the same.
+std::string getCurrentTime() {//returns the currenttime in terms of a string
+    auto start = std::chrono::system_clock::now(); //takes current time(time right now) using chrono and system clock
+    std::time_t currentTime = std::chrono::system_clock::to_time_t(start); //converts to type to 'time'. This is converted to type time_t to ensure values can evantually be converted to String.
+    char* myChar=ctime(&currentTime); //converts time to cstring value
+    myChar[strlen(myChar)-1]='\0'; //because the last character in the ctime is a newline, this must be adjusted(removed)
+                                   //\0 represents the last character that should be considered in the size of the c-string.
+    return std::string(myChar); //returns currenttime in type string
+}
+
+long long getTimeSinceEpoch() { //returns the time since the epoch(in milliseconds)
+    auto start = std::chrono::system_clock::now(); //takes current time(time right now) using chrono and system clock
+    auto gap = start.time_since_epoch(); //converts start to the time since epoch
+    long long second = std::chrono::duration_cast<std::chrono::milliseconds>(gap).count(); //ensures that the time since epoch is in terms of millieconds). count() gives the number of time units.
+    return second; //returns the currentValue in milliseconds since the EPOCH.
+}
+
+
+//this function adjusts the time to include the value in milliseconds.
+//This is used so that the database units includes milliseconds for precision
+std::string adjustString() {
+
+    std::string substr="";//this represents the string to be adjusted
+    for(int i=0;i<=getCurrentTime().length()-6;i++) {//The string loops until the character before the space(the space is before the year)
+        substr+=getCurrentTime()[i];
+    }
+
+    substr+=".";//this adds a . as a form of a decimal
+    substr+=std::to_string(getTimeSinceEpoch()%1000);//millisecondssinceepoch%1000 gives the number of milliseconds for the past second. This appended to the seconds value
+    substr+=" ";//A space is added, so that the year comes after the space
+
+    for(int i=getCurrentTime().length()-4;i<getCurrentTime().length();i++) {//This iterates through the year, and ensures that the year is added
+        substr+=getCurrentTime()[i];
+    }
+
+    return substr;//this returns the string to be used in the database(and evantually the webapp).
+}
+
+void setProperESP32Time(long long TimeSinceEPOCH) {//this function is being crreated, bc rn, the system time of the ESP32 is set as 1970
+    //The value passed in will be in terms of milliseconds.
+    //THis issue needs to be resolved
+
+    //TimeSinceEPOCH=getTimeSinceEpoch()/1000;//obtains value from other function in seconds. Divide by 1000 is used here, as the other function is right now in MILLISECONDS SINCH EPOCH
+
+    //printf("THIS WENT THROUGH");
+    struct timeval myStruct;//struct of timeval. Timeval represents a manner to set the system clock of the esp32.
+
+    myStruct.tv_sec=(time_t)((TimeSinceEPOCH)-(5*3600));//this is going to be the parameter that is passed in. NOTE: THIS NEEDS TO BE OF DATATYPE TIME_t!!!!!!!
+    //This is because the default structure assumes this datatype.
+    //Note the times 5, as local timezone is 5 hours behind GMT time
+    myStruct.tv_usec=0;//remainder milliseconds is in terms of microseconds.
+
+    settimeofday(&myStruct, NULL);//timezone can be ignored for our case, just need a time in between certificate
+
+
+}
 
 char* returnFlouride() {//returns read in Flouride value.
+    //Something to keep in mind is that the quotations surrounding the number WILL be included. 
+    //thus, bc the maximum characters allowed for flouride is 9, and the quotations are two characters, 
+    //the maximumum amount of bytes possibly read in from database is 11.
+    
+
+//The folllowing chosen configuration specs were researched from the espidf function list in the https client page
+//These were selected due to their needed context in this operation.
+
 
 
 
 esp_http_client_config_t myCfg = {//this sets the configuration/settings of the Read request. 
-    //This is the most basic requirement before initializing the configuration.
+    //This is the most basic requirement before initializing the client.
 
 
     //There are a couple of parameters of interest that will be highlighted here.
@@ -91,8 +170,10 @@ esp_http_client_config_t myCfg = {//this sets the configuration/settings of the 
     
     //as seen above url is the link to the flouride value in the database.
     //the above link is where the specific value is receieved. %20 is spaces between each word.
+    //opening this link, will show the current value of Flouride......
 
-    , 
+
+    //GEN NOTES:
     //Placement aspects such as port, path, query can be left as default, as the url is specified.
     //UserAgent is simply used for showing current ESPIDF type.
 
@@ -101,65 +182,133 @@ esp_http_client_config_t myCfg = {//this sets the configuration/settings of the 
 
     //isasync is defaulted to false here, as the order of operations(checking with the database, receiving, etc, should be proper)
 
-    .host="databaseecen403-6fb45-default-rtdb.firebaseio.com",//the host name is everything before specifying the data path.
-
-    .method=HTTP_METHOD_GET, //this is the method type for the get request. This code is going to simply obtain the value for Flouride Data(ppm) value
-    .transport_type=HTTP_TRANSPORT_OVER_TCP //the transport type(from database to espidf) will be TCP
-    //This is because TCP was the previously used network interface, as described in the Wifi code.
+    //.host="databaseecen403-6fb45-default-rtdb.firebaseio.com",//the host name is everything before specifying the data path.
     
-    //,.skip_cert_common_name_check=true;
-    //if any errors occur look into address_type
-    //,.addr_family=AF_INET,
+
+
+
+    ,.method=HTTP_METHOD_GET, //this is the method type for the get request. This code is going to simply obtain the value for Flouride Data(ppm) value FROM THE DATABASE.
+    
+    .transport_type=HTTP_TRANSPORT_OVER_TCP, //the transport type(from database to espidf) will be TCP
+    //This is because TCP was the previously used network interface(LWIP), as described in the Wifi code.
+    //Even though this is TCP communication, it will still have TLS(Transport layer Security) when sending.
+    //This provides encryption and safe sending of data over internet.
+    //To ensure this, espidf has an onboard bundle which can be attached and used.
+    //It allows for different certificates to be used.
+
+    
+    .use_global_ca_store=true//this is used here to essentially allow all certificates from the below bundle
+    
+    
+
+    
+    
+    //The good news is, is that the certificate for Firebase is included. 
+    ,.crt_bundle_attach=esp_crt_bundle_attach,//This represents the default bundle from ESPIDF, and it includes the certificate for Firebase Projects.
+    .keep_alive_enable = true//ensures that when a timeout occurs, an automatic retry is done to regain connection.
+    
+
 
 };
 
+
+
 esp_http_client_handle_t myVar = esp_http_client_init(&myCfg);//this starts a new receieving session. 
 //It returns a variable(myVar) of type client_handle(this represents the newly made client)
+//This initalizes the client(that has the previously made settings)to be used with the database.
 
-esp_err_t status = esp_http_client_perform(myVar);//this is actually going to perform the function itself.
+
+static char Flouride[13];//this variable represents the flouride value being inputted in from the database. static is being used here, to ensure this variable will be the same, when it is being accessed again in app_main
+//Size 13 is used here, just to GURANTEE that this buffer is larger than the length of what is being read in the database.
+//This accounts for the maximum possible situation(11 bytes)
+//Even though it is size 13, something to keep in mind is that the LAST INDEX is is the null terminator /0.
+//Thus, it truly is 12 bytes.
+//Something else to keep in mind is that for reading Flouride, everything is in terms of bytes NOT String length
+//Bytes are the units of reading from the database, and this was a big initial issue that evantually got resolved.
+
+
+
+
+
+
+
+esp_err_t status = esp_http_client_open(myVar, 0);//0 is used here, as nothing is actually written to the dataabase itself.
+//opens connection to the database with the previously made client.
+
+
 //It is important to note that because the return type is an error, this will be used
 //to essentially detect whether or not the operation went through AFTER it was attempted.
-//This is analgous to the ESP_ERROR_CHECKS in the part for WifiConfig
+//This is analgous to the ESP_ERROR_CHECKS in the part for the Wifi Code.
 
 
-char Flouride[9];//this variable represents the flouride value being inputted in from the database.
-//std::string returnableFlouride;
-if(status==ESP_OK) {//checks to make sure attempt is successful before beginning to read it in.
-    int databaseflourlength=esp_http_client_read_response(myVar, Flouride, strlen(Flouride)-1);
+int myFetch=esp_http_client_fetch_headers(myVar);//this is done to later distinguish headers from body for this variable.
+//allows for the body to be read in seperately with the read command.
+
+if(status==ESP_OK) {//checks to make sure attempt to open connection is successful.
+    //It is important to check this, just in case if something does go wrong.....
+    
+    //number of bytes read in from the database includes the flouride value itself AND two surrounding double quotes
+    //As stated above, this means that the maximum amount of bytes read from the database is 11.
+
+
+    int databaseflourlength=esp_http_client_read(myVar, Flouride, sizeof(Flouride)-1);//this is assuming: that the size of the variable is 12(NOTE: maximum possible length of variable from database is 11), with the index i=12 being the null terminator.
+    //This is why -1 is used here as there is no need for having 13 bytes(12 is the maximum).
+
     //there are 3 parameters here: the created client, the string variable flouride, and then the length of flouride.
     //BECAUSE this is a cstring, it is important to note that the last character is null terminated.
-    //Meaning that the true size is just 8
+    //Meaning that the true size of the buffer is 11, as the last index will be null terminated..
+
+    //There was an issue the student was stuck on for a while: using strlen instead of using sizeof.
+    //sizeof needs to be used, as the database keeps values in terms of bytes.
+    //RESOLVED ISSUE: NEED TO USE BYTES(sizeof) INSTEAD OF LENGTH(strlen) WHEN READING!!!!!!!!!!!!!!!!!!
     
-    //databaseflourlength returns the length of the flouride value FROM the database.
-    //It is important to keep in mind that this does not need to be the same as the length of the instantiated variable(Flouride[9]).
-    //It is less than or equal to the length of the instantiated variable.
+    //databaseflourlength returns the length of the flouride value FROM the database. Note: this length can be at most 11.
+    //It is important to keep in mind that this does not need to be the same as the length of the instantiated variable(Flouride[13]).
+    //It is less than or equal to 12(with the last byte being null terminated).
 
 
-    Flouride[8]='\0';//sets the last index of flouride as null terminator.
+    //the following code section is done to resolve an edge case when increasing/decreasing the length of flouride, 
+    //leads to keeping the same previous variable(has more numbers than needed to).
+    //This issue arised due to the fact of the buffer possibly being greater than the actual length read in the database.
+    //This code segment ensures that the null terminator occurs AFTER the second quotation mark, ensuring only necessary values are being displayed.
+    int indofSecondQuote=0;//this represents the final index to be included in the print: the second double quote.
+    
+    for(int i=0;i<sizeof(Flouride)-1;i++) {//this goes through the size of Flouride(12 normal bytes)
+        if(Flouride[i]=='\"' && i!=0) {//if the value at the index is a quotation mark(but it is NOT the first quotation mark)
+            indofSecondQuote=i;//save this index as a varaible, and exit out of loop.
+            break;//breaks out of the loop to save time.
+        }
+    }
 
-    //for(int i=0;i<strlen(Flouride)-1;i++) {//stops before null character, that is why its -1 instead of the full length.
-      //  returnableFlouride+=Flouride[i];
-    //}
+
+    Flouride[indofSecondQuote+1]='\0';//the index AFTER the saved index will be the null terminator, as NOTHING should be read in after the second double quote.
+    
+ESP_LOGI("HTTP", "Read returned %d bytes", databaseflourlength);//returns length of what is returned(NOTE: quotations will be returned as well.)
 }
 
 
-//for this operation, client_read response was used
 
+esp_http_client_close(myVar);//this finally closes(opposite of open) the client AFTER the operation is completed
 
+esp_http_client_cleanup(myVar);//this finally cleans up the client AFTER the operation is completed
+//cleanup helps to avoid any memory issues that could occur..
 
+//An interesting aspect to consider is that the approach had to be changed to ensure this value could be returned.
+//instead of doing init->perform->readresponse->cleanup, this was done as init->open->read->close->cleanup
+//The student had some issues doing it the first way, bc perform would read all the data before readresponse would be able to use it...
 
-
-
-
-//ESP_LOG_BUFFER_HEX()
-
-
-esp_http_client_cleanup(myVar);//this closes the current connection being made, as the value has been read in.
-//This stops the communication back and forth, for this instance.
-
-
-
-return Flouride;//final read in flouride value from Firebase
+//Important thing now, is that it works as it should.
+/*
+std::string myString="";
+int count2=1;
+while(myString[count2]!='\"') {
+    myString[count2]=Flouride[count2];
+    count2++;
+}
+myString[count2+1]='\0';                
+*/
+//return atof(myString.c_str());//final read in flouride value from Firebase
+return Flouride;
 
 
 }
@@ -168,7 +317,7 @@ return Flouride;//final read in flouride value from Firebase
 
 
 static void my_Event_Handler(void* myArg, esp_event_base_t theBase, int32_t theID, void* theData)    {//this function is static, as it does not change
-    
+        
     //the above function has 4 arguments: 
     //myArg: other data that is not from the event
     //theBase: the event base name
@@ -228,7 +377,10 @@ static void my_Event_Handler(void* myArg, esp_event_base_t theBase, int32_t theI
 
 
        
-       //printf(returnFlouride());
+       //printf(returnFlouride());//this HAS to be called at this stage. Communication/sending and receiving requests can ONLY be done
+       //after IP Address is obtained. This is something important to consider.
+
+       gotIp=true;
     }
 }
 
@@ -255,7 +407,8 @@ void wifi_init_phase(void) {//this function is the initalization phase of the pr
     //If there is no error, the thing inside Error check will simply execute, and the logic will continue.
 
     ESP_ERROR_CHECK(esp_netif_init());//If there is no error then, the LWIP(stack) will be initialized. As stated above, this is the first step in the connection portion.
-    
+    //Note that this is crucial to communicate with iOT Devices(in this case/context, ESP32).
+
     ESP_ERROR_CHECK(esp_event_loop_create_default()); //If there is no error then, the event task(loop) will be initialized. As stated above, this is the second step in the connection portion.
 
     //This next step is an intermediate step to ensure proper connection.
@@ -293,7 +446,8 @@ void wifi_init_phase(void) {//this function is the initalization phase of the pr
                                                         &my_Event_Handler,//this takes in the name of the event handling function that was built above
                                                         NULL,//this field is for data besides event data that is needed. Here, it is NULL as this simply checks if the event is properly configured
                                                         &instance_my_ip));//simply an instance which relates to the values needed. myIp is used here as the name, as it is related to obtaining the IP Address.
-
+//Even though the above is made an instance of now, it is simply left in the queue.
+//IT IS ONLY INVOKED AFTER THE WIFI START COMMAND, IN WHICH THE START WILL START UP THE WIFI!!!!
     
     
     
@@ -304,6 +458,7 @@ void wifi_init_phase(void) {//this function is the initalization phase of the pr
     wifi_config_t myWifiConfig={//simply describes the Wifi configuration in detail
         .sta={
             .ssid="TAMU_IoT", .password=""//the network is TamuIoT, and the password is empty.
+            //.ssid="ARRIS-2471", .password="373000704518"
         },
         
     };
@@ -357,49 +512,13 @@ void wifi_init_phase(void) {//this function is the initalization phase of the pr
 
 
 
-//These functions are taken from c++ program made in 403. They are EXACTLY the same.
-std::string getCurrentTime() {//returns the currenttime in terms of a string
-    auto start = std::chrono::system_clock::now(); //takes current time(time right now) using chrono and system clock
-    std::time_t currentTime = std::chrono::system_clock::to_time_t(start); //converts to type to 'time'. This is converted to type time_t to ensure values can evantually be converted to String.
-    char* myChar=ctime(&currentTime); //converts time to cstring value
-    myChar[strlen(myChar)-1]='\0'; //because the last character in the ctime is a newline, this must be adjusted(removed)
-                                   //\0 represents the last character that should be considered in the size of the c-string.
-    return std::string(myChar); //returns currenttime in type string
-}
 
-long long getTimeSinceEpoch() { //returns the time since the epoch(in milliseconds)
-    auto start = std::chrono::system_clock::now(); //takes current time(time right now) using chrono and system clock
-    auto gap = start.time_since_epoch(); //converts start to the time since epoch
-    long long second = std::chrono::duration_cast<std::chrono::milliseconds>(gap).count(); //ensures that the time since epoch is in terms of millieconds). count() gives the number of time units.
-    return second; //returns the currentValue in milliseconds since the EPOCH.
-}
-
-
-//this function adjusts the time to include the value in milliseconds.
-//This is used so that the database units includes milliseconds for precision
-std::string adjustString() {
-
-    std::string substr="";//this represents the string to be adjusted
-    for(int i=0;i<=getCurrentTime().length()-6;i++) {//The string loops until the character before the space(the space is before the year)
-        substr+=getCurrentTime()[i];
-    }
-
-    substr+=".";//this adds a . as a form of a decimal
-    substr+=std::to_string(getTimeSinceEpoch()%1000);//millisecondssinceepoch%1000 gives the number of milliseconds for the past second. This appended to the seconds value
-    substr+=" ";//A space is added, so that the year comes after the space
-
-    for(int i=getCurrentTime().length()-4;i<getCurrentTime().length();i++) {//This iterates through the year, and ensures that the year is added
-        substr+=getCurrentTime()[i];
-    }
-
-    return substr;//this returns the string to be used in the database(and evantually the webapp).
-}
 
 
 
 
 void sendTimeLimeDispandpH(double pH, double limeDisp) {//this function will be used to send both pH and limeDisp values.
-        //pH and limeDisp will both be doubles, as this code is in C.
+        //pH and limeDisp will both be doubles, as this is how they were formatted in the helper function made in 403..
         //Note: the format of this is going to be VERY similar to the returnFlouride, with some key distnictions that will be noted.
         //2nd Note: this function declaration(having 2 parameters) is identical to C++ program created in 403, except now the body, will be using esp_http_client requests instead of raw curl commands.
 
@@ -407,7 +526,7 @@ void sendTimeLimeDispandpH(double pH, double limeDisp) {//this function will be 
 
 
     esp_http_client_config_t myCfg2 = {//this sets the configuration/settings of this request. 
-    //This is the most basic requirement before initializing the configuration.
+    //This is the most basic requirement before initializing the client.
 
 
     //There are a couple of parameters of interest that will be highlighted here.
@@ -420,7 +539,7 @@ void sendTimeLimeDispandpH(double pH, double limeDisp) {//this function will be 
 
 //Post will simply append a new instance to the database.
 
-    //Note: Wifi IP is: 10.250.55.99
+    //GEN NOTES:
     //.addr_type=IPADDR_TYPE_V4,
     //the above link is where the specific value is receieved.
 
@@ -432,7 +551,6 @@ void sendTimeLimeDispandpH(double pH, double limeDisp) {//this function will be 
 
     //isasync is defaulted to false here, as the order of operations(checking with the database, receiving, etc, should be proper)
 
-    .host="databaseecen403-6fb45-default-rtdb.firebaseio.com",//the host name is everything before specifying the data path. Same host as before
 
     .method=HTTP_METHOD_POST, //this is the method type for the POST request. 
     //This code is going to simply append a randomly generated alphanumeric ID along with some info of pH, lime dispension, and currentTimeStamp(which comes from adjustString())
@@ -441,12 +559,18 @@ void sendTimeLimeDispandpH(double pH, double limeDisp) {//this function will be 
 
     .transport_type=HTTP_TRANSPORT_OVER_TCP //the transport type(from database to espidf) will be TCP
     //This is because TCP was the previously used network interface, as described in the Wifi code.
+    //More explanation as to why TCP is used can be found in the returnFlouride function.
     
-    //,.skip_cert_common_name_check=true;
-    //if any errors occur look into address_type
-    //,.addr_family=AF_INET,
 
+,.use_global_ca_store=true//this is used here to essentially allow all certificates from the below bundle
+    
+    
 
+    
+    
+    //The good news is, is that the certificate for Firebase is included.
+    ,.crt_bundle_attach=esp_crt_bundle_attach,//attaches default ESPIDF Certificate Bundle WHICH INCLUDES FIREBASE!!!!
+    .keep_alive_enable = true//ensures timeouts/random exits do not occur when sending by autoreconnect. This helps to reduce errors....
 
 
 };
@@ -457,24 +581,59 @@ void sendTimeLimeDispandpH(double pH, double limeDisp) {//this function will be 
 esp_http_client_handle_t myVar2 = esp_http_client_init(&myCfg2);//this starts a new sending session(in this case). 
 //It returns a variable(myVar2) of type client_handle(this represents the newly made client)
 
-esp_err_t statusofSet=esp_http_client_set_post_field(myVar2, adjustString().c_str(), strlen(adjustString().c_str())-1);//Note: Adjust String is the official timestamp, with its appropaite decimal portions.
-//Because AdjustString returns a string, it needed to be type casted to cstring, thus, c_str is used here.
-//this needs to be adjusted, to also include pH and lime dispension.
-//Note: this is before perform, as the espidf http_request website stated this MUST go before perform
-//This logically can be attested to the fact that it requires to have to be valid sending data BEFORE the sending itself can be performed.
+std::string dataStr1 = std::to_string(pH);//Converts the double pH value to a string, using the to_string method.
+std::string dataStr2 = std::to_string(limeDisp);//Converts the double lime dispension value to a string using the to_string method.
+//Note: these two lines are identical to the 403 C++ program created last Spring. Firebase will contain these values as Strings, and the app will read them as Strings.....
+
+std::string mySending=
+//Identical labels as 403 C++ program....
+//Now though, because a curl command is NOT used, the backslashes are reduced in quantity, as there does not need to be that many esacping of strings.
+"{ \"Created at\": \"" + (adjustString()) +//TimeStamp created at..... Note: Adjust String is the official timestamp, with its appropaite decimal portions.
+
+    "\", \"LimeDispensionRate\": \"" + dataStr2 + "\", \"pHvalue\": \"" + dataStr1 + "\"}";//Lime Dispension and pH..... As of now, these are randomly generated. 
+    //For integration, other subsystem returnables will be used here.
+    //this is the format of a child in the database.
+    //The slashes are used to escape out....
+
+
+esp_http_client_set_header(myVar2, "Content-Type", "application/json");//allows for json data to be processed when sending.........
+//The above value is a json value. This is a side step, as oftentimes, ESP may not implicitly allow JSON to be sent
+//Doing this helps to specify what is being sent, before the sending occurs...
+
+ESP_LOGI("My Post", "POST body: %s", mySending.c_str());//Test Print. Prints out the current instance of what is going to be sent
+
+
+//this is going to specify what will be sent.
+esp_err_t statusofSet=esp_http_client_set_post_field(myVar2, mySending.c_str(), mySending.length());
+//Format of variables: client, cstring, and length of cstring
+//Because mySending returns a string, it needed to be type casted to cstring, thus, c_str is used here.
+//mySending.length() is used, bc that was the original string's length. 
+
+//Note: this is BEFORE perform, as the espidf http_request website stated this MUST go before perform
+//This logically can be attested to the fact that ESPIDF requires to have to sending data BEFORE the sending itself can be performed.
 
 
 
 
 
-esp_err_t status2 = esp_http_client_perform(myVar2);//this is actually going to perform the function itself.
+esp_err_t status2 = esp_http_client_perform(myVar2);//this is actually going to perform the task(sending to the database) itself.
 //It is important to note that because the return type is an error, this will be used
 //to essentially detect whether or not the operation went through AFTER it was attempted.
 //This is analgous to the ESP_ERROR_CHECKS in the part for WifiConfig
 //)
 
 
-esp_http_client_cleanup(myVar2);//cleans up this instance.
+
+
+//this is done to check status response.
+int status = esp_http_client_get_status_code(myVar2);//as of now, the status is a 200 error, meaning that the send is successful :).
+printf("HTTP status = %d\n", status);//test print to see database response.
+
+
+
+
+esp_http_client_cleanup(myVar2);//cleans up this instance. This is required EVERY TIME a new operation is completed. 
+//Prevents any possible memory errors...
 
 }
 
@@ -490,49 +649,146 @@ esp_http_client_cleanup(myVar2);//cleans up this instance.
 
 
 
+//NOTE: the below two functions are temporarily used now, when doing firmware integration, these will no longer be required.....
+double randompHGen() { //This function will be used in 403. It is used to randomly generate double pH values between 0 and 14. This is the first stage of the input process.
+    //Note: these values will evantually be sent to database(which continously appends new rows to the same column)
+    //This database will reflect these values, in real time to the webapplication.
+    
+    double myRand=0;//instantation of random number
+
+    //for now pH will be limited to 0 and 14.0. This will change later on.
+    myRand=rand()%1401; //sets range of random number to be between 0 and 1400 inclusive.
+    double actualRand = myRand/100.0; //ensures decimals are included, and includes 0-14.0.
+    return actualRand; //returns randomGenerated pH value
+}
 
 
+double limedispenGen() { //This function will be used in 403. It is used to randomly generate double lime dispension values between 0 and 1000(arbitary for now, will be changed later). This is the first stage of the input process.
+    //Note: these values will evantually be sent to database(which continously appends new rows to the same column)
+    //This database will reflect these values, in real time to the webapplication.
+    
+    double myRand3=0;//instantation of random number
+
+    myRand3=rand()%10001; //sets range of random number to be between 0 and 10000 inclusive.
+    double actualRand3 = myRand3/10.0; //ensures decimals are included, and includes 0-1000.0
+    return actualRand3; //returns randomGenerated limedispension value
+}
 
 
-void database_app_main(void) //extern C is used here, to ensure that C++ does work for this project.
+extern "C" void app_main(void) //extern C is used here, to ensure that C++ does work for this project.
 {
+    
+  
 
 
-    //esp_err_t myVal = 
+   
+
+
+   //esp_err_t myVal = 
     nvs_flash_init();//An attempt is made to essentially allocate Wifi credentials, etc. on to the flash. 
     //As stated in the init phase
     //nvs flash is the most unique part of the process, however, it is required to essentially ensure that the credentials, 
     //and information, are all stored appropiately in memory.
     
     
-    //Note: memory deletion, and reinstantiation was previously done here, now its deleted.
 
 
 
     wifi_init_phase();//calls the driver for the: LWIP Stack, Event Task, and finally the Wifi Task.
 
-    //esp_log_level_set("*", ESP_LOG_WARN);//this just prints out specific warnings.
     
-//Test Printing
 
-    
-    
-    
-    /*
-    try {
-        printf(returnFlouride());
+
+vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until system clock is set
+//Also ensures ample time for ESP to get IP Address, as IP Address(Wifi Connection) is minimal basic requirement for everything to work.
+//This will avoid any clock timing issues......
+
+
+esp_sntp_config_t setTime = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");//this attempts a connection with the system clock server.
+//The system clock default server(pool.ntp.org) contains ALL specs that the clock must follow, thus, it is used right here. This is a linux timeserver that can be used.
+esp_netif_sntp_init(&setTime);//initializes SNTP to current time now.//this sets the SNTP time to the current time. Note that this is the default configuration to set the system clock.
+//The above method was chosen over rather than having a manual clock due to accuracy concerns, and due to many tasks running at once.
+//A manual clock leads to "Time Drift."(time delay accumulation), if it is not properly monitored, thus this is done in this manner.
+
+//This portion here is used to set the time zone
+setenv("TZ", "CST6CDT,M3.2.0,M11.1.0", 1);
+//TZ: specifies to set timezone.
+//CST6: US CENTRAL TIME IS 6 HOURS BEHIND  GMT
+//CDT: THE US OBSERVES DAYLIGHT SAVINGS TIME
+//M3.2.0: REPRESENTS STARTING POINT OF DAYLIGHT SAVINGS TIME(2ND SUNDAY OF EVERY MARCH)
+//M11.1.0: REPRESENTS ENDING POINT OF DAYLIGHT SAVINGS TIME(1ST SUNDAY OF EVERY NOVEMEBER). This part is exclusive, as DAYLIGHTS SAVINGS doesnt start on this day
+//1 simply means execute this specification.
+
+//daylight savings time starts on the 2nd Sunday of every March, and ends on the 1st Sunday of every NOVEMBER.
+//This is almost like a conditional: once the time range is out of bounds(daylight savings time is essentially over), then the gap will change accordingly.
+tzset();//sets this time zone permanently.
+
+//Once the time is set, this will run.
+
+
+vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
+//Ensures for enough time for system clock to "sink in".
+//This is important, bc proper system clock is needed to be compatible with Firebase certificate(which will be encountered when sending/receiving requests)
+
+
+
+        
+        if(gotIp){//requests are ONLY SENT OR RECEIEVED if Ip Address is obtained. 
+        //This is bc stable wifi connection(which means obtained ip address), is required for successful sends/receive to/from database.
+            
+            //For overall flow order:
+            //pH/LimeDispension/TimeStamp: ESPIDF->Database->Webapp
+            //Flouride: Webapp->Database->ESPIDF
+            //this explains why pH/LimeDispension/TimeStamp are being sent, while Flouride is being read.
+            
+            for(int i=0;i<20;i++) {//Continously sends values to database for specific amount of time.
+                //the upper bound here can be changed based on length of how long values should send for.
+            
+
+                printf(returnFlouride());
+                
+
+               
+
+
+        
+        double mypHVal=0; //represents pHValue for the current looprun
+        double myVal2=0; //represents limedispension value for the current looprun
+       
+        mypHVal=randompHGen();//declares randomly generated pH value. This will change with integration code.....
+        //do{
+        myVal2=limedispenGen(); //declares randomly generated lime dispension value. This will change with integration code.....
+            
+
+        //break;
+        //returnFlouride();
+
+            //might need to consider this loop.......
+        
+        
+
+
+            
+        //setProperESP32Time(currTime); //this is going to set the system time appropiately. 
+
+
+        sendTimeLimeDispandpH(mypHVal, myVal2);//sends pH and lime dispension value to the database.
+        //The timestamp will be implicitly sent, using the adjustString() function made in ECEN 403.
+
+
+        
+
+
+        
+       //vTaskDelay(pdMS_TO_TICKS(2000));//sets specific updates if needed to. CHANGE THIS IF NEEDED DURING INTEGRATION!!!!
+
+    }
+
     }
     
-    catch() {
-        printf("Wifi Isnt proper buddy");
-    }
-   */
-
-    //sendTimeLimeDispandpH(5.5, 8.9);//this will ideally send a new child to Firebase.
-    //The main takeaway of doing this, is that the format of this data needs to be IDENTICAL to the format of the dummy data from 403
-    //If that is true, everything(except maybe timing concerns which can be fixed) will be PERFECT!!!
-
-
 
 
 }
+
+
+
