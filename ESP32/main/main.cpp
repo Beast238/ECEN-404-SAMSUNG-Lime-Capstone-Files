@@ -21,18 +21,10 @@
 
 #include "database.cpp"
 #include "pH_driver.cpp"
+#include "model.h"
 
-//sets up flashing all of the coefficient files
-extern const uint8_t _binary_PolyCoefficients_txt_start[] asm("_binary_PolyCoefficients_txt_start"); 
-extern const uint8_t _binary_PolyCoefficients_txt_end[] asm("_binary_PolyCoefficients_txt_end");
-extern const uint8_t _binary_PIDCoefficients_txt_start[] asm("_binary_PIDCoefficients_txt_start");
-extern const uint8_t _binary_PIDCoefficients_txt_end[]   asm("_binary_PIDCoefficients_txt_end");
+extern "C" volatile float g_fluoride_ppm = NAN;  // DEFINITION for test
 
-// Simple struct to hold PID coefficients
-struct PID {
-    float Kp;
-    float Ki;
-};
 
 void print_info()
 {
@@ -66,6 +58,18 @@ void print_info()
     printf("Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
 }
 
+/* static void test_setter_task(void*) {
+    vTaskDelay(pdMS_TO_TICKS(500));       // let watcher start
+    g_fluoride_ppm = 250.0f;              // 1st measurement
+    printf("TEST: fluoride = %.2f ppm\n", g_fluoride_ppm);
+
+    vTaskDelay(pdMS_TO_TICKS(2000));      // simulate time until next reading
+    g_fluoride_ppm = 40.0f;               // 2nd measurement
+    printf("TEST: fluoride = %.2f ppm\n", g_fluoride_ppm);
+
+    vTaskDelete(NULL);
+} */
+
 void reboot()
 {
     for (int i = 10; i >= 0; i--) {
@@ -81,59 +85,14 @@ extern "C" void app_main(void)
 {
     print_info();
 
-    //TESTING COMPUTATIONAL MODEL
-    double inputFluoride = 350; 
-    printf("Input Fluoride = %f ppm\n", inputFluoride);
-
-    //TEST POLYNOMIAL ARITHMETIC
-    size_t length = _binary_PolyCoefficients_txt_end - _binary_PolyCoefficients_txt_start; 
-    ESP_LOGI("EMBED", "PolyCoefficients.txt size = %d bytes", (int)length);
-
-    // Put file contents into a std::string 
-    std::string fileContent(reinterpret_cast<const char*>(_binary_PolyCoefficients_txt_start), length);
-
-    // Parse into floats 
-    std::vector<float> coefficients; 
-    std::stringstream ss(fileContent); 
-    float value; while (ss >> value) { coefficients.push_back(value); } 
-    double outputLimeDosage = coefficients[0] * pow(inputFluoride, 3) + coefficients[1] * pow(inputFluoride, 2) + 
-    coefficients[2] * pow(inputFluoride, 1) + coefficients[3]; 
-    printf("Output Lime Dosage = %f mL/s\n", outputLimeDosage);
-
-    // Testing PID Logic
-    // Example measured error
-    float measuredFluoride = 45; //ppm, data from sensor
-    float targetFluoride = 30; //ppm, target
-
-    float errMeasured = measuredFluoride - targetFluoride;
-
-    float dt = 1; //s, time between fluoride sensor measurements
-    // 1) Load PID coefficients from embedded array
-    size_t pidLength = _binary_PIDCoefficients_txt_end - _binary_PIDCoefficients_txt_start;
-    std::string pidFileContent(reinterpret_cast<const char*>(_binary_PIDCoefficients_txt_start), pidLength);
-
-    std::vector<PID> pidTable;
-    std::stringstream pidSS(pidFileContent);
-    float Kp, Ki;
-    while (pidSS >> Kp >> Ki) {
-        pidTable.push_back({Kp, Ki});
-    }
-
-    // 2) Map measured error to nearest index
-    int errorMin = -50;  // assuming file starts at -50 ppm
-    int idx = static_cast<int>(round(errMeasured)) - errorMin;
- 
-    // Safety checks
-    if (idx < 0) idx = 0;
-    if (idx >= pidTable.size()) idx = pidTable.size() - 1;
-
-    // 3) Get PID coefficients
-    PID selectedPID = pidTable[idx];
-
-    float pCorrection = selectedPID.Kp * errMeasured;
-    float iCorrection = selectedPID.Ki * errMeasured;
-    float offset = pCorrection + iCorrection;
-    float CorrectLimeFlow = outputLimeDosage;
+    //Ryon Model
+    model_init();
+    model_set_target_ppm(30.0f);
+    model_set_change_threshold_ppm(0.0f);   // trigger on any change
+    model_start_watcher_task();             // <-- start the watcher
+    
+    // Launch the one-shot setter
+    // xTaskCreatePinnedToCore(test_setter_task, "test_setter", 2048, nullptr, 5, nullptr, tskNO_AFFINITY);
     
     // TEST MATTHEW DATABASE
     if (true)
