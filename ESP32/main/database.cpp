@@ -88,7 +88,7 @@
 #include "esp_task_wdt.h"//represents wdt task
 
 
-bool gotIp=false;
+bool gotIp=false;//indicator to check if IP Address was officially obtained.
 
 //These functions are taken from c++ program made in 403. They are EXACTLY the same.
 std::string getCurrentTime() {//returns the currenttime in terms of a string
@@ -380,7 +380,7 @@ static void my_Event_Handler(void* myArg, esp_event_base_t theBase, int32_t theI
        //printf(returnFlouride());//this HAS to be called at this stage. Communication/sending and receiving requests can ONLY be done
        //after IP Address is obtained. This is something important to consider.
 
-       gotIp=true;
+       gotIp=true;//sets gotIP Address to true, as the ip address was obtained....
     }
 }
 
