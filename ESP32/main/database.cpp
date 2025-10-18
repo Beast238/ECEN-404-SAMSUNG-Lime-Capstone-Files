@@ -741,7 +741,7 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
             //Flouride: Webapp->Database->ESPIDF
             //this explains why pH/LimeDispension/TimeStamp are being sent, while Flouride is being read.
             
-            for(int i=0;i<20;i++) {//Continously sends values to database for specific amount of time.
+            //for(int i=0;i<20;i++) {//Continously sends values to database for specific amount of time.
                 //the upper bound here can be changed based on length of how long values should send for.
             
                 char* cStringFluoride = returnFlouride();
@@ -784,9 +784,9 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
 
 
         
-       //vTaskDelay(pdMS_TO_TICKS(2000));//sets specific updates if needed to. CHANGE THIS IF NEEDED DURING INTEGRATION!!!!
+       vTaskDelay(pdMS_TO_TICKS(5000));//sets specific updates if needed to. CHANGE THIS IF NEEDED DURING INTEGRATION!!!!
 
-    }
+    //}
 
     }
 }
