@@ -7,6 +7,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
+#include "custom_globals.h"
 
 #include <vector>
 #include <string>
@@ -15,15 +16,14 @@
 #include <cstdint>
 #include <math.h>
 
-// ========================= Logging =========================
-static const char* TAG = "MODEL";
+#include "i2c_driver.h"
 
 // ================= External fluoride value =================
 // Define EXACTLY ONCE in the sensor/MCU reader module as:
 //     volatile float g_fluoride_ppm = NAN;
 extern "C" {
-    volatile float g_fluoride_ppm = NAN;
-    volatile float g_flow_rate = NAN;
+    volatile float g_fluoride_ppm = 0;
+    volatile float g_flow_rate = 0;
 }
 
 // ========== Embedded coefficient blobs (linker symbols) ==========
@@ -106,7 +106,7 @@ extern "C" void model_start_watcher_task(void)
 static void load_poly_from_flash()
 {
     const size_t length = _binary_PolyCoefficients_txt_end - _binary_PolyCoefficients_txt_start;
-    ESP_LOGI(TAG, "PolyCoefficients.txt size = %d bytes", (int)length);
+    if (ENABLE_DEBUG_LOGGING) printf("MODEL: PolyCoefficients.txt size = %d bytes\n", (int)length);
 
     std::string file(reinterpret_cast<const char*>(_binary_PolyCoefficients_txt_start), length);
     std::stringstream ss(file);
@@ -116,10 +116,10 @@ static void load_poly_from_flash()
     while (ss >> v) s_poly.push_back(v);
 
     if (s_poly.size() < 4) {
-        ESP_LOGW(TAG, "Expected 4 polynomial coefficients (a3 a2 a1 a0); got %u", (unsigned)s_poly.size());
+        if (ENABLE_INFO_LOGGING) printf("MODEL: Expected 4 polynomial coefficients (a3 a2 a1 a0); got %u\n", (unsigned)s_poly.size());
         while (s_poly.size() < 4) s_poly.push_back(0.0f); // pad to avoid OOB
     } else if (s_poly.size() > 4) {
-        ESP_LOGW(TAG, "Found %u polynomial coefficients; using the first 4", (unsigned)s_poly.size());
+        if (ENABLE_INFO_LOGGING) printf("MODEL: Found %u polynomial coefficients; using the first 4\n", (unsigned)s_poly.size());
         s_poly.resize(4);
     }
 }
@@ -137,11 +137,10 @@ static void load_pid_table_from_flash()
     }
 
     if (s_pidTable.empty()) {
-        ESP_LOGW(TAG, "PID table is empty! PI corrections will be zero.");
+        if (ENABLE_DEBUG_LOGGING) printf("MODEL: PID table is empty! PI corrections will be zero.\n");
     } else {
         const int errorMax = s_errorMin + (int)s_pidTable.size() - 1;
-        ESP_LOGI(TAG, "PID rows loaded: %u (error range: %d..%d ppm)",
-                 (unsigned)s_pidTable.size(), s_errorMin, errorMax);
+        if (ENABLE_DEBUG_LOGGING) printf("MODEL: PID rows loaded: %u (error range: %d..%d ppm)\n", (unsigned)s_pidTable.size(), s_errorMin, errorMax);
     }
 }
 
@@ -190,8 +189,7 @@ static void run_model_from_fluoride(float fluoride_ppm)
         s_prev2_err= 0.0f;
         s_ff_done  = true;
 
-        ESP_LOGI(TAG, "INIT: FF-only | Fpred=%.2f ppm | u_ff=%.4f mL/s",
-                 Fpred_ppm, u_ff);
+        if (ENABLE_DEBUG_LOGGING) printf("MODEL: INIT: FF-only | Fpred=%.2f ppm | u_ff=%.4f mL/s", Fpred_ppm, u_ff);
         return;
     }
 
@@ -206,8 +204,7 @@ static void run_model_from_fluoride(float fluoride_ppm)
     // Optional: deadband "hold"
     if (fabsf(err) <= ERR_DEADBAND && fabsf(s_prev_err) <= ERR_DEADBAND) {
         // hold last output
-        ESP_LOGI(TAG, "PID inc (hold) | Fpred=%.2f | err=%.2f | cmd=%.4f mL/s",
-                 Fpred_ppm, err, s_u_last);
+        if (ENABLE_DEBUG_LOGGING) printf("MODEL: PID inc (hold) | Fpred=%.2f | err=%.2f | cmd=%.4f mL/s", Fpred_ppm, err, s_u_last);
         return;
     }
 
@@ -224,14 +221,15 @@ static void run_model_from_fluoride(float fluoride_ppm)
     if (u > DOSE_MAX)       u = DOSE_MAX;
 
     g_flow_rate = u;
+    I2C_Driver::set_lime_rate(g_flow_rate);
 
     // Shift history
     s_prev2_err = s_prev_err;
     s_prev_err  = err;
     s_u_last    = u;
 
-    ESP_LOGI(TAG,
-             "PID inc | Fpred=%.3f | err=%.3f | dt=%.3fs | Kp=%.4f Ki=%.5f | "
+    if (ENABLE_DEBUG_LOGGING) printf(
+             "MODEL: PID inc | Fpred=%.3f | err=%.3f | dt=%.3fs | Kp=%.4f Ki=%.5f | "
              "dP=%.5f dI=%.5f | cmd=%.6f mL/s",
              Fpred_ppm, err, dt, Kp, Ki, dP, dI, u);
 

@@ -11,6 +11,22 @@ i2c_master_dev_handle_t I2C_Driver::duty_cycle_select_handle;
 volatile double I2C_Driver::duty_cycle_1 = 0;
 volatile double I2C_Driver::duty_cycle_2 = 0;
 
+void I2C_Driver::set_lime_rate(double rate) // rate in mL/s
+{
+    double dutyCycle = 0;
+    // todo rate to dutyCycle conversion
+
+    I2C_Driver::set_duty_cycle_1(dutyCycle);
+}
+
+void I2C_Driver::set_wastewater_rate(double rate) // rate in mL/s
+{
+    double dutyCycle = 0;
+    // todo rate to dutyCycle conversion
+
+    I2C_Driver::set_duty_cycle_2(dutyCycle);
+}
+
 void I2C_Driver::set_duty_cycle_1(double dc) { I2C_Driver::duty_cycle_1 = dc; }
 void I2C_Driver::set_duty_cycle_2(double dc) { I2C_Driver::duty_cycle_2 = dc; }
 

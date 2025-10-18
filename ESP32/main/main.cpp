@@ -80,7 +80,7 @@ void reboot()
 
 extern "C" void app_main(void)
 {
-    print_info();
+    printf("Initializing...\n");
 
     // Ryon Model
     model_init();
@@ -98,25 +98,11 @@ extern "C" void app_main(void)
     pH_driver_init();
     
     // I2C driver
-    if (true)
-    {
-        I2C_Driver::i2c_init();
-        printf("\nBooted up.\n0, 0 for 0 seconds\n");
+    I2C_Driver::i2c_init();
 
-        //vTaskDelay(10000 / portTICK_PERIOD_MS);
-        I2C_Driver::set_duty_cycle_1(0.75);
-        I2C_Driver::set_duty_cycle_2(0.25);
-        printf("\n0.75, 0.25 for 10 seconds\n");
+    // print info
+    print_info();
 
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
-        I2C_Driver::set_duty_cycle_1(0.5);
-        I2C_Driver::set_duty_cycle_2(0.5);
-        printf("\n0.5, 0.5 for 10 seconds\n");
-
-        // shut down everything
-        printf("\nAll done.\n");
-        I2C_Driver::i2c_deinit();
-    }
-
+    //I2C_Driver::i2c_deinit();
     //reboot();
 }

@@ -12,6 +12,7 @@
 #include <stdlib.h>//used for double conversions.
 #include <sys/time.h>//header for esp system time setting
 #include <time.h>//system header.
+#include "custom_globals.h"
 
 //the following three delcarations are related to the FreeRTOS library.
 #include "freertos/FreeRTOS.h"
@@ -283,7 +284,7 @@ if(status==ESP_OK) {//checks to make sure attempt to open connection is successf
 
     Flouride[indofSecondQuote+1]='\0';//the index AFTER the saved index will be the null terminator, as NOTHING should be read in after the second double quote.
     
-ESP_LOGI("HTTP", "Read returned %d bytes", databaseflourlength);//returns length of what is returned(NOTE: quotations will be returned as well.)
+if (ENABLE_DEBUG_LOGGING) printf("HTTP: Read returned %d bytes\n", databaseflourlength);//returns length of what is returned(NOTE: quotations will be returned as well.)
 }
 
 
@@ -339,7 +340,7 @@ static void my_Event_Handler(void* myArg, esp_event_base_t theBase, int32_t theI
         //what this means is that there is some disruption in the Wifi, the purpose of this if statement is to detect that
 
 
-        ESP_LOGI("Wifi Connection Status", "Wifi got disconnected, trying to reconnect...."); //display message to terminal that ESP is now disconnected.
+        if (ENABLE_DEBUG_LOGGING) printf("Wifi Connection Status: Wifi got disconnected, trying to reconnect....\n"); //display message to terminal that ESP is now disconnected.
         //reason gives the reason.
 
         esp_wifi_connect();//attempt to reconnect to Wifi after initial disruption
@@ -351,7 +352,7 @@ static void my_Event_Handler(void* myArg, esp_event_base_t theBase, int32_t theI
         //If the event's group is a wifi event, and the Id is connected
         //This is just a status check to ensure that the Wifi is still connected.
 
-        ESP_LOGI("Wifi Connection Status", "Wifi connected, nice!"); //display message to terminal that ESP is connected.
+        if (ENABLE_DEBUG_LOGGING) printf("Wifi Connection Status: Wifi connected, nice!\n"); //display message to terminal that ESP is connected.
         //there is no need for event group here, as this section is more so longterm status(it's not a sudden thing such as start/disconnect/ip address). 
         //This is something that will ideally last for long time periods.
         //count=2;
@@ -366,7 +367,7 @@ static void my_Event_Handler(void* myArg, esp_event_base_t theBase, int32_t theI
         //the actual datatype of the IP address is ip_event_got_ip_t. Thus, we need to make a temporary variable that holds this value
         ip_event_got_ip_t* myEvent = (ip_event_got_ip_t*) theData;//this holds the value of the incoming event's IP address. This makes sense, as theData is in a raw format, and it needs to be converted into ip address formatted data
         //got_ip_t is used here, as that is the data type for receiving IP EVENTS.
-        ESP_LOGI("Wifi Connection Status", "got ip address:" IPSTR, IP2STR(&myEvent->ip_info.ip));//this prints the message to the terminal. ip info just represents information found in the previously converted event. .ip is used on this, to specifically obtain the addresss.
+        if (ENABLE_DEBUG_LOGGING) printf("Wifi Connection Status: got ip address: " IPSTR "\n", IP2STR(&myEvent->ip_info.ip));//this prints the message to the terminal. ip info just represents information found in the previously converted event. .ip is used on this, to specifically obtain the addresss.
         //IPSTR is used to format the Ip Address being found after the second comma
         
         //IP2STR simply breaks the address into different numbers(in this case, 4 numbers for the IP address) for sake of formatting.
@@ -600,7 +601,7 @@ esp_http_client_set_header(myVar2, "Content-Type", "application/json");//allows 
 //The above value is a json value. This is a side step, as oftentimes, ESP may not implicitly allow JSON to be sent
 //Doing this helps to specify what is being sent, before the sending occurs...
 
-ESP_LOGI("My Post", "POST body: %s", mySending.c_str());//Test Print. Prints out the current instance of what is going to be sent
+if (ENABLE_DEBUG_LOGGING) printf("My Post: POST body: %s\n", mySending.c_str());//Test Print. Prints out the current instance of what is going to be sent
 
 
 //this is going to specify what will be sent.
@@ -627,7 +628,7 @@ esp_err_t status2 = esp_http_client_perform(myVar2);//this is actually going to 
 
 //this is done to check status response.
 int status = esp_http_client_get_status_code(myVar2);//as of now, the status is a 200 error, meaning that the send is successful :).
-printf("HTTP status = %d\n", status);//test print to see database response.
+if (ENABLE_INFO_LOGGING) printf("Database HTTP status = %d\n", status);//test print to see database response.
 
 
 
@@ -741,7 +742,7 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
             //Flouride: Webapp->Database->ESPIDF
             //this explains why pH/LimeDispension/TimeStamp are being sent, while Flouride is being read.
             
-            for(int i=0;i<20;i++) {//Continously sends values to database for specific amount of time.
+            {//Continously sends values to database for specific amount of time.
                 //the upper bound here can be changed based on length of how long values should send for.
             
                 char* cStringFluoride = returnFlouride();
@@ -749,7 +750,7 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
                 stringFluoride = stringFluoride.substr(1, stringFluoride.length() - 1);
                 float floatFluoride = std::stof(stringFluoride);
                 g_fluoride_ppm = floatFluoride;
-                printf("Fluoride: %f\n", g_fluoride_ppm);
+                if (ENABLE_INFO_LOGGING) printf("Fluoride: %f\n", g_fluoride_ppm);
                 
 
                
@@ -784,7 +785,7 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
 
 
         
-       //vTaskDelay(pdMS_TO_TICKS(2000));//sets specific updates if needed to. CHANGE THIS IF NEEDED DURING INTEGRATION!!!!
+       vTaskDelay(pdMS_TO_TICKS(5000));//sets specific updates if needed to. CHANGE THIS IF NEEDED DURING INTEGRATION!!!!
 
     }
 
