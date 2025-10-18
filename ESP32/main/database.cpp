@@ -787,7 +787,7 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
         
        vTaskDelay(pdMS_TO_TICKS(5000));//sets specific updates if needed to. CHANGE THIS IF NEEDED DURING INTEGRATION!!!!
 
-    }
+    //}
 
     }
 }
