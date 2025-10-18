@@ -390,6 +390,8 @@ int returnCount() {
     return count;
 }
 */
+static bool alreadyConnected=false;//this is indicator variable that will be used when the station is first made.
+//There only needs to be one station instantiated, also due to, there is no error return type that it has.
 void wifi_init_phase(void) {//this function is the initalization phase of the process. While the above function accounts for different situations, and responds to those situations(event handling), this function will be used for initializing/startup
     
     
@@ -407,20 +409,28 @@ void wifi_init_phase(void) {//this function is the initalization phase of the pr
     //It aborts, bc the program can not continue.
     //If there is no error, the thing inside Error check will simply execute, and the logic will continue.
 
-    ESP_ERROR_CHECK(esp_netif_init());//If there is no error then, the LWIP(stack) will be initialized. As stated above, this is the first step in the connection portion.
+    //WITHOUT ABORT IS USED TO ENSURE THE PROGRAM DOES NOT EXIT OUT if encountering minor error.
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_init());//If there is no error then, the LWIP(stack) will be initialized. As stated above, this is the first step in the connection portion.
     //Note that this is crucial to communicate with iOT Devices(in this case/context, ESP32).
 
-    ESP_ERROR_CHECK(esp_event_loop_create_default()); //If there is no error then, the event task(loop) will be initialized. As stated above, this is the second step in the connection portion.
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_loop_create_default()); //If there is no error then, the event task(loop) will be initialized. As stated above, this is the second step in the connection portion.
 
     //This next step is an intermediate step to ensure proper connection.
     //This binds the LWIP instantiated in the first line of code
     //ESP_ERROR_CHECK(
+
+    //ensures only one wifi station needs to be constructed(multiple do not need to........)
+    if(!alreadyConnected) {//if it hasn't been connected before, a new station should be made.
     esp_netif_create_default_wifi_sta();//initializes wifi station, and connects network interface(AKA LWIP) to the wifi station.
     //There is no need of Error check, as this already has an inherent abhort feature.
+    
+    alreadyConnected=true;//shows that it has been connected.
+}
+//The above is an important part bc the wifi station only needs to be made once, as it is already used, as the communication used here is station.
 
     wifi_init_config_t myWifiEvent = WIFI_INIT_CONFIG_DEFAULT();//this sets up a wifi event that is in the default initial configuration. 
     //This is done for setup for the next line
-    ESP_ERROR_CHECK(esp_wifi_init(&myWifiEvent));//this initializes the actual wifi task, once the above event is ready.
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_init(&myWifiEvent));//this initializes the actual wifi task, once the above event is ready.
 
     
 
@@ -436,13 +446,13 @@ void wifi_init_phase(void) {//this function is the initalization phase of the pr
     esp_event_handler_instance_t instance_my_ip;
 
     //This section of code is used for running event loop, and to do a test run.
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,//the event base to check if this is WIFI_EVENT(explained in event handler portion)
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_instance_register(WIFI_EVENT,//the event base to check if this is WIFI_EVENT(explained in event handler portion)
                                                         ESP_EVENT_ANY_ID,//this flag essentially allows for any ID to be used(meaning that it can be any type of Wifi event).
                                                         &my_Event_Handler, //this takes in the name of the event handling function that was built above
                                                         NULL,//this field is for data besides event data that is needed. Here, it is NULL as this simply checks if the event is properly configured. This is analagous to arg in the event handler function(data other than data in the actual file)
                                                         &instance_my_id));//simply an instance which relates to the values needed. myId is used here as the name, as this is really for any of the Wifi events.
 
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT,//the event base to check if this is IP_EVENT(explained in event handler portion)
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_instance_register(IP_EVENT,//the event base to check if this is IP_EVENT(explained in event handler portion)
                                                         IP_EVENT_STA_GOT_IP,//this flag essentially allows for checking if the IP Address is receievd.
                                                         &my_Event_Handler,//this takes in the name of the event handling function that was built above
                                                         NULL,//this field is for data besides event data that is needed. Here, it is NULL as this simply checks if the event is properly configured
@@ -459,20 +469,19 @@ void wifi_init_phase(void) {//this function is the initalization phase of the pr
     wifi_config_t myWifiConfig={//simply describes the Wifi configuration in detail
         .sta={
             .ssid="TAMU_IoT", .password=""//the network is TamuIoT, and the password is empty.
-            //.ssid="ARRIS-2471", .password="373000704518"
         },
         
     };
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));//the first thing to specify is that the Wifi mode is station NOT AP
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &myWifiConfig));//the next thing is to essentially use the described event above, 
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_set_mode(WIFI_MODE_STA));//the first thing to specify is that the Wifi mode is station NOT AP
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_set_config(WIFI_IF_STA, &myWifiConfig));//the next thing is to essentially use the described event above, 
     //which represents the wifi settings in this case. WIFI_IF_STA means that a station interface will be connected to(it is a crucial parameter.)
 
     
     
     
     //This portion essentially finally starts the wifi task after it has been: initialized and configured
-    ESP_ERROR_CHECK(esp_wifi_start());//Error check is of course used here to ensure there are no errors.
+    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_start());//Error check is of course used here to ensure there are no errors.
     //Using intuition, this part will trigger the first case in the event handler.
 
     //there is no need to attempt a wifi connection after this, as the handler will account for it....
@@ -703,8 +712,11 @@ void database_app_main(void) //extern C is used here, to ensure that C++ does wo
 vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until system clock is set
 //Also ensures ample time for ESP to get IP Address, as IP Address(Wifi Connection) is minimal basic requirement for everything to work.
 //This will avoid any clock timing issues......
+static bool alreadyConnected2=false;//indicator setter for SNTP.
+//The system clock only needs to be set once...... Thus, that is the purpose of this indicator
 
 
+if(!alreadyConnected2) {//checks to make sure it hasnt been set yet.
 esp_sntp_config_t setTime = ESP_NETIF_SNTP_DEFAULT_CONFIG("pool.ntp.org");//this attempts a connection with the system clock server.
 //The system clock default server(pool.ntp.org) contains ALL specs that the clock must follow, thus, it is used right here. This is a linux timeserver that can be used.
 esp_netif_sntp_init(&setTime);//initializes SNTP to current time now.//this sets the SNTP time to the current time. Note that this is the default configuration to set the system clock.
@@ -725,8 +737,8 @@ setenv("TZ", "CST6CDT,M3.2.0,M11.1.0", 1);
 tzset();//sets this time zone permanently.
 
 //Once the time is set, this will run.
-
-
+    alreadyConnected2=true;//once the system time has been set once, it DOES NOT need to be set again.
+}
 vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
 //Ensures for enough time for system clock to "sink in".
 //This is important, bc proper system clock is needed to be compatible with Firebase certificate(which will be encountered when sending/receiving requests)
@@ -741,7 +753,7 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
             //pH/LimeDispension/TimeStamp: ESPIDF->Database->Webapp
             //Flouride: Webapp->Database->ESPIDF
             //this explains why pH/LimeDispension/TimeStamp are being sent, while Flouride is being read.
-            
+            //for(int i=0;i<20;i++)
             {//Continously sends values to database for specific amount of time.
                 //the upper bound here can be changed based on length of how long values should send for.
             
@@ -789,10 +801,11 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
 
     //}
 
-    }
+    //}
 }
 
-
+}
+}
 void database_app_main_loop()
 {
     while (true)
@@ -801,3 +814,4 @@ void database_app_main_loop()
     }
     vTaskDelete(NULL);
 }
+
