@@ -416,6 +416,7 @@ int wifi_init_phase(void) {//this function is the initalization phase of the pro
     esp_err_t status = esp_event_loop_create_default(); //If there is no error then, the event task(loop) will be initialized. As stated above, this is the second step in the connection portion.
     if (status != ESP_OK)
     {
+        vTaskDelay(pdMS_TO_TICKS(5000));
         return 1;
     }
 
@@ -757,7 +758,7 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
             //pH/LimeDispension/TimeStamp: ESPIDF->Database->Webapp
             //Flouride: Webapp->Database->ESPIDF
             //this explains why pH/LimeDispension/TimeStamp are being sent, while Flouride is being read.
-            //for(int i=0;i<20;i++)
+            for(int i=0;i<1000;i++)
             {//Continously sends values to database for specific amount of time.
                 //the upper bound here can be changed based on length of how long values should send for.
             

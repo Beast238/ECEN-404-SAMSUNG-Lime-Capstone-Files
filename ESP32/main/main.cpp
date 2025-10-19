@@ -122,7 +122,7 @@ int init_cmd(int argc, char **argv)
     {
         main_full_model_init();
     }
-    else if (typ == "database")
+    else if (typ == "db" || typ == "database")
     {
         xTaskCreate((TaskFunction_t)(database_app_main_loop), "database_app_main_loop", 4096, NULL, 2, NULL);
     }
