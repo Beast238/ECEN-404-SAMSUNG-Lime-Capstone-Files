@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include "custom_globals.h"
+
 extern volatile bool pH_driver_ready;
 extern volatile double currentpH;
 

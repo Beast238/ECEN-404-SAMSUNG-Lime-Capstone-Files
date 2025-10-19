@@ -18,7 +18,7 @@ double pH_driver_single_read()
     adc1_config_width(ADC_WIDTH_BIT_12);
     adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_2_5);
     double sumOfReadings = 0;
-    int numReadings = 100;
+    int numReadings = 500;
     for (int i = 0; i < numReadings; i++) // take 100 readings and average
     {
         sumOfReadings += adc1_get_raw(ADC1_CHANNEL_0);
@@ -33,9 +33,12 @@ void pH_driver_loop()
     while (pH_driver_ready)
     {
         double val = pH_driver_single_read();
-        double pH = (val - 2861) / -160; // pH calibration curve results    
-        //printf("%f\n", val);
-        printf("PH: %f\n", pH);
+        //double pH = (val - 2861) / -160; // pH calibration curve results    
+        //double pH = (val - 2608) / -140;
+        // 1072.435385 = 7
+        double pH = (val - 2129.44) / -140;
+        if (ENABLE_INFO_LOGGING) printf("%f\n", val);
+        if (ENABLE_INFO_LOGGING) printf("PH: %f\n", pH);
 
         currentpH = pH;
     }

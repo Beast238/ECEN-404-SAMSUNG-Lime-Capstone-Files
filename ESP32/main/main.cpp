@@ -9,6 +9,7 @@
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_system.h"
+#include "esp_console.h"
 #include "i2c_driver.h"
 
 #include <stdio.h> 
@@ -22,8 +23,9 @@
 #include "database.cpp"
 #include "pH_driver.h"
 #include "model.h"
+#include "custom_globals.h"
 
-void print_info()
+static void print_info()
 {
     printf("Hello world! This is the Samsung Lime Treatment system, on the ESP32 MCU.\n");
 
@@ -55,19 +57,9 @@ void print_info()
     printf("Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
 }
 
-/* static void test_setter_task(void*) {
-    vTaskDelay(pdMS_TO_TICKS(500));       // let watcher start
-    g_fluoride_ppm = 250.0f;              // 1st measurement
-    printf("TEST: fluoride = %.2f ppm\n", g_fluoride_ppm);
+static int print_info_params(int argc, char **argv) { print_info(); return 0; }
 
-    vTaskDelay(pdMS_TO_TICKS(2000));      // simulate time until next reading
-    g_fluoride_ppm = 40.0f;               // 2nd measurement
-    printf("TEST: fluoride = %.2f ppm\n", g_fluoride_ppm);
-
-    vTaskDelete(NULL);
-} */
-
-void reboot()
+static void reboot()
 {
     for (int i = 10; i >= 0; i--) {
         printf("Restarting in %d seconds...\n", i);
@@ -78,18 +70,20 @@ void reboot()
     esp_restart();
 }
 
-extern "C" void app_main(void)
+static void main_full_model_init()
 {
-    printf("Initializing...\n");
-
-    // Ryon Model
     model_init();
     model_set_target_ppm(30.0f);
     model_set_change_threshold_ppm(0.0f);   // trigger on any change
     model_start_watcher_task();             // <-- start the watcher
-    
-    // Launch the one-shot setter
-    //xTaskCreatePinnedToCore(test_setter_task, "test_setter", 2048, nullptr, 5, nullptr, tskNO_AFFINITY);
+}
+
+void init_all(void)
+{
+    printf("Initializing all modules...\n");
+
+    // Ryon Model
+    main_full_model_init();
 
     // database/GUI
     xTaskCreate((TaskFunction_t)(database_app_main_loop), "database_app_main_loop", 4096, NULL, 2, NULL);
@@ -100,8 +94,115 @@ extern "C" void app_main(void)
     // I2C driver
     I2C_Driver::i2c_init();
 
-    // print info
-    print_info();
+    printf("Ready!\n");
+}
+
+int init_cmd(int argc, char **argv)
+{
+    if (argc != 2)
+    {
+        printf("init expects one argument\n");
+        return 1;
+    }
+
+    std::string typ = argv[1];
+    if (typ == "all")
+    {
+        init_all();
+    }
+    else if (typ == "ds")
+    {
+        I2C_Driver::i2c_init();
+    }
+    else if (typ == "ph")
+    {
+        pH_driver_init();
+    }
+    else if (typ == "model")
+    {
+        main_full_model_init();
+    }
+    else if (typ == "database")
+    {
+        xTaskCreate((TaskFunction_t)(database_app_main_loop), "database_app_main_loop", 4096, NULL, 2, NULL);
+    }
+
+    return 0;
+}
+
+int set_valve_duty_cycle_cmd(int argc, char **argv)
+{
+    if (argc != 3)
+    {
+        printf("valve expects two parameters\n");
+        // valve <1/2/lime/water> <0-100>
+        return 1;
+    }
+
+    std::string dutyCycleStr = argv[2];
+    float dutyCycleFloat = std::stof(dutyCycleStr);
+
+    std::string typ = argv[1];
+    if (typ == "1" || typ == "lime")
+    {
+        I2C_Driver::set_duty_cycle_1(dutyCycleFloat / 100);
+    }
+    else if (typ == "2" || typ == "water")
+    {
+        I2C_Driver::set_duty_cycle_2(dutyCycleFloat / 100);
+    }
+
+    return 0;
+}
+
+void init_console()
+{
+    esp_console_repl_t *repl = NULL;
+    esp_console_repl_config_t repl_config = ESP_CONSOLE_REPL_CONFIG_DEFAULT();
+    repl_config.prompt = CONFIG_IDF_TARGET ">";
+    repl_config.max_cmdline_length = 255;
+
+    esp_console_dev_uart_config_t hw_config = ESP_CONSOLE_DEV_UART_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_console_new_repl_uart(&hw_config, &repl_config, &repl));
+    ESP_ERROR_CHECK(esp_console_start_repl(repl));
+
+    // register commands
+    const esp_console_cmd_t cmd1 = {
+        .command = "print_info",
+        .help = "Print chip information",
+        .hint = NULL,
+        .func = &print_info_params,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd1));
+    const esp_console_cmd_t cmd2 = {
+        .command = "init",
+        .help = "Initialize subsystems (all/ds/ph/model/db)",
+        .hint = NULL,
+        .func = &init_cmd,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd2));
+    const esp_console_cmd_t cmd3 = {
+        .command = "valve",
+        .help = "Set valve duty cycle (valve <1/2/lime/water> <0-100>). 1 = lime, 2 = water",
+        .hint = NULL,
+        .func = &set_valve_duty_cycle_cmd,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd3));
+}
+
+extern "C" void app_main(void)
+{
+    if (DEBUG_MODE)
+    {
+        init_console();
+        printf("\nDEBUG MODE: READY\n");
+        print_info();
+    }
+    else
+    {
+        init_all();
+        print_info();
+    }
 
     //I2C_Driver::i2c_deinit();
     //reboot();

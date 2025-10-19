@@ -392,7 +392,7 @@ int returnCount() {
 */
 static bool alreadyConnected=false;//this is indicator variable that will be used when the station is first made.
 //There only needs to be one station instantiated, also due to, there is no error return type that it has.
-void wifi_init_phase(void) {//this function is the initalization phase of the process. While the above function accounts for different situations, and responds to those situations(event handling), this function will be used for initializing/startup
+int wifi_init_phase(void) {//this function is the initalization phase of the process. While the above function accounts for different situations, and responds to those situations(event handling), this function will be used for initializing/startup
     
     
     
@@ -413,7 +413,11 @@ void wifi_init_phase(void) {//this function is the initalization phase of the pr
     ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_init());//If there is no error then, the LWIP(stack) will be initialized. As stated above, this is the first step in the connection portion.
     //Note that this is crucial to communicate with iOT Devices(in this case/context, ESP32).
 
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_loop_create_default()); //If there is no error then, the event task(loop) will be initialized. As stated above, this is the second step in the connection portion.
+    esp_err_t status = esp_event_loop_create_default(); //If there is no error then, the event task(loop) will be initialized. As stated above, this is the second step in the connection portion.
+    if (status != ESP_OK)
+    {
+        return 1;
+    }
 
     //This next step is an intermediate step to ensure proper connection.
     //This binds the LWIP instantiated in the first line of code
@@ -485,7 +489,7 @@ void wifi_init_phase(void) {//this function is the initalization phase of the pr
     //Using intuition, this part will trigger the first case in the event handler.
 
     //there is no need to attempt a wifi connection after this, as the handler will account for it....
-    
+    return 0;
 }
 
 
@@ -704,8 +708,8 @@ void database_app_main(void) //extern C is used here, to ensure that C++ does wo
 
 
 
-    wifi_init_phase();//calls the driver for the: LWIP Stack, Event Task, and finally the Wifi Task.
-
+    int failed = wifi_init_phase();//calls the driver for the: LWIP Stack, Event Task, and finally the Wifi Task.
+    if (failed) return;
     
 
 
