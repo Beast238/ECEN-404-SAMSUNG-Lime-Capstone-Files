@@ -414,7 +414,7 @@ int wifi_init_phase(void) {//this function is the initalization phase of the pro
     //Note that this is crucial to communicate with iOT Devices(in this case/context, ESP32).
 
     esp_err_t status = esp_event_loop_create_default(); //If there is no error then, the event task(loop) will be initialized. As stated above, this is the second step in the connection portion.
-    if (status != ESP_OK)
+    if (status != ESP_OK)//if there is an error, then a retry attempt will be done to essentially reconnect.
     {
         vTaskDelay(pdMS_TO_TICKS(5000));
         return 1;
