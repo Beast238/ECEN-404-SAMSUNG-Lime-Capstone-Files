@@ -1790,10 +1790,13 @@ print("Hello");
             limedispfound=allLimeDisp[j];
           }
         }
-        if(j<timeStamps.length-1) {//j should only be incremented so that it wont be equal to or greater than timestamps.length
+        //j<timeStamps.length leads to repeats at the end, repeats should be avoided.....
+        //if(j<timeStamps.length-1) {//j should only be incremented so that it wont be equal to or greater than timestamps.length
+
+      
         j++;//to gurantee that time is moving forwards
         //Bc, all timestamps are in increasing order, repeats will not occur AND values of course will be increasing.
-        }
+        //}
 
     print(closestTime);
     
