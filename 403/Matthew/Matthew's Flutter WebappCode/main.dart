@@ -169,8 +169,8 @@ String adjustStringval2(String value2) {//this function removes ALL trailing zer
 
 
   return returnVal2;//this returns the new string of interest.
-
   
+
 }
 
 
@@ -203,6 +203,16 @@ String showpHData() { //This is a function in the class that is used to display 
 }
 );
 
+  //This code accounts if the pH is out of range.
+  //If it is out of the natural range, it will truncate itself to be in the proper range.
+  if(double.tryParse(origpH)!=null && double.parse(origpH)>14) {
+    return adjustStringval2("14");
+  }
+  else if(double.tryParse(origpH)!=null && double.parse(origpH)<0) {
+    return adjustStringval2("0");
+  }
+
+  
   return adjustStringval2(origpH);//origpH is returned, and updated in realtime on Flutter. Decimal places are also truncated, and the decimal values are formatted nicely for display by calling the adjustval2string.
 }
 
@@ -468,7 +478,7 @@ void pausetheWatch() { //pauses the timer/stopwatch. If the light is off, that m
   setState(() {//ensures values are properly changed on GUI.
     theData2.add(FlSpot(pause, double.parse(showpHData()))); //adds the paused point to a seperate list(this list will be used/displayed with a table)
 
-    theData3.add(DataRow(cells:[DataCell(Text(showpHData())), DataCell(Text(DateTime.now().toString()))]));
+    theData3.add(DataRow(cells:[DataCell(Text(showpHData())), DataCell(Text(dateFormat.format(DateTime.now()).toString()))]));
     //DateTime.now() represents the current realtime
     //this adds a pasued data value to the list.
     //this paused data value is not excessively spaced apart, and the graph is properly working.
@@ -596,9 +606,18 @@ String returnMessage="";//this represents the message to be returned
 
             LineChart(LineChartData(//declares instance of LineChart
 
-            minY: 0, //minimum y is 0 as this is the lowest possible pH value
-            maxY: 14,//maximum y is 14 as this is the highest possible pH value.
+          //These check the associated ranges.
+          //If the pH is less than 0, then that will the minimum allowed y value, if the pH is greater than 14 then that will the maximum allowed y value
+          //If not either of these, then min is 0 and max is 14(typical behavior)
+          //This simply helps to auto adjust the range of the graph.
+          //Note: int is used to truncate(if needed to) the values down, and -1/+1 is used to extend range.
+            //minY: (double.tryParse(showpHData())!=null && double.parse(showpHData())<0 ? double.parse(showpHData()).toInt()-1: 0), //minimum y is 0 as this is the lowest possible pH value
+            //maxY: (double.tryParse(showpHData())!=null && double.parse(showpHData())>14 ? double.parse(showpHData()).toInt()+1:14),//maximum y is 14 as this is the highest possible pH value.
             
+            minY:0,
+            maxY:14,
+
+
             //This is also placed here as a design choice, as it is important for the user to view the differet levels of pH comparaitvely.
             //Not having this, causes the data to have issues in display, and it becomes less clear as to the differences in levels of pH.
             //This is aesthetically more pleasing, and there is no need of having a decimal scaled y axis, as the user can already see decimal values by hovering over datapoints.
@@ -727,7 +746,7 @@ IconButton(//this icon shows the symbol at the end of the text field(suffix)
       //The stuff that are included is: timegap between play and previous pause, stopwatch elapsed time, Real-time pH value, Real-Time Lime Delivery Value, display message of button spamming, and then of course, the text style.
       //This text may be formatted more later.
       //children:<Widget>[
-      child: Text('TimeGapBetween Play and Previous Pause: ${timeGap}s\n\nStopWatch Elapsed Time: ${myStopWatch.elapsedMilliseconds/1000}s\n\nReal-Time pH Value: ${showpHData()}\n\nReal-Time Lime Delivery Value(g/L): ${showlimedispensionData()}\n\npH type: ${returnpHType()}\n${currentStateProg ? "ChillOut with the presses!":""}',
+      child: Text('TimeGapBetween Play and Previous Pause: ${timeGap}s\n\nStopWatch Elapsed Time: ${myStopWatch.elapsedMilliseconds/1000}s\n\nReal-Time pH Value: ${showpHData()}\n\nReal-Time Lime Delivery Value(g/mL): ${showlimedispensionData()}\n\npH type: ${returnpHType()}\n${currentStateProg ? "ChillOut with the presses!":""}',
       
       style:TextStyle(fontSize:20, color:Colors.purple),//this represents the text color.
       
@@ -741,7 +760,7 @@ IconButton(//this icon shows the symbol at the end of the text field(suffix)
     Positioned(bottom:333, right: 112, child: Text("SamplingTime Slider")),//label for sampling time slider.
 
 
-    Positioned(bottom:70, right: 100, //positioned is used here, to position this dynamically changing datatable. This datatable will be used for filtering, the datatable will be used for paused values.
+    Positioned(bottom:70, right: 80, //positioned is used here, to position this dynamically changing datatable. This datatable will be used for filtering, the datatable will be used for paused values.
     child: 
     SizedBox(height:225, //this limits 
     //width: 100, 
@@ -930,7 +949,13 @@ final TextEditingController theController2 = TextEditingController(); //this con
 bool isValid=false; //instantiates an indicator variable that is used to check for validity of user input
 int count2=0; //this is an indicator to obtain the number of variables checked. This is also used to ensure a label in the userinput.
 
-void readInandWriteFlouride(String inputFlouride) async { //inputFlouride is the value coming in from the Flutter webapp. async is used here to ensure it is properly added.
+String prevFlouride="";
+bool myVal9=false;//this is going to be used to detect if there is a change in flouride. if there is a change in flouride, addRows should not be executed.
+
+
+void readInandWriteFlouride(String inputFlouride) async{ //inputFlouride is the value coming in from the Flutter webapp. async is used here to ensure it is properly added to the database.
+  
+  
   isValid=false;//the value is invalid, until proven if true
   setState(() {//setState is used here to ensure the proper changes are being shown on the UserInterface.
   
@@ -954,11 +979,17 @@ void readInandWriteFlouride(String inputFlouride) async { //inputFlouride is the
   //Unlike the displaying of pH and lime dispension values, this will be read in. Also, unlike the pH and lime dispension values(which are added as seperate children), this will be updated as the last value.
 
   await myDatabase.update({ //this updates the values in .json format. 
-    "Fluoride Data(ppm) added at ": ((DateTime.now()).toString()),//this represents the currentDate and Time(which will be sent to Firebase as a String). dateFormat is used here to make a consistent formatting scheme.
+    "Fluoride Data(ppm) added at ": dateFormat.format((DateTime.now())),//this represents the currentDate and Time(which will be sent to Firebase as a String). dateFormat is used here to make a consistent formatting scheme.
     "Fluoride Data(ppm) value ": inputFlouride//this is the Flouride value that the user gave in. It is important to consider that it is only sent if it is valid.
     
   });
+  print("Hello There");
+
   }
+
+
+  
+  
 }
 
 
@@ -980,7 +1011,9 @@ SelectedVal? currentChoice;//this represents the currently selected value from t
 void changeChoice(SelectedVal? choice) {//question mark is used here, as it is unknown whether or not the value is null
   setState(() {//changes are reflected UI.
     currentChoice=choice;//changes the value of the currentchoice to choice(this ensures a change in state)
+    print("Flouride influences choice type");
   });
+  myVal9=false;
   addRows();//after the change in choice, the addRows function is called. This is to ensure that the selected value of interest is properly filtered in the datatable(and so that the UI will be updated).
 }
 
@@ -1014,10 +1047,11 @@ void numTableEntries(String newNum) {//this function connected the number of ent
   if(isValid2) {//if the value is able to convert to a nonzero integer...
     setState(() {
       numEntries=int.parse(newNum);//the state of the current number of entries is set to the integer version of the number of rows. This will be used in the addRows function.
+      print("Flouride influences number of rows");
     });
   }
   //print(numEntries);//you need to check to ensure that num entries DOES NOT EQUAL 0. There can not be 0 rows in the table. The number of rows are integers greater than or equal to one.
-  
+  myVal9=false;
   addRows();//addRows is called here, as the state of the row will change based on the number of entries in the data table.
 }
 
@@ -1039,7 +1073,9 @@ TimeVal? currentChoice2;//this represents the currently selected value from the 
 void changeChoice2(TimeVal? choice2) {//question mark is used here, as it is unknown whether or not the value is null
   setState(() {
     currentChoice2=choice2;//changes the value of the currentchoice2 to choice2(this ensures a change in state)
+    print("Flouride influences time type");
   });
+  myVal9=false;
   addRows();//addRows is called here, as the state of the row will change based on the time duration to be used.
 }
 
@@ -1051,7 +1087,7 @@ void changeChoice2(TimeVal? choice2) {//question mark is used here, as it is unk
 
 List<DataRow> theRows=[];//this is a list of the Data Rows that will go into the DataTable
 DatabaseReference myDatabase=FirebaseDatabase.instance.ref('data');//This is the instance of the database. This code will read/write from this instance. 'data' is the name of the data stored in the database.
- 
+DatabaseReference myDatabase2=FirebaseDatabase.instance.ref('data/Fluoride Data(ppm) added at ');
 
 //String currLabel="Cheers";
 
@@ -1059,7 +1095,7 @@ DatabaseReference myDatabase=FirebaseDatabase.instance.ref('data');//This is the
 @override
 void initState() {//initstate is used here to initalize a new state for the table. This is done when the program has first begun
   super.initState();
-  addRows();//calling this function creates a new datatable at runtime
+  //addRows();//calling this function creates a new datatable at runtime
   
 }
 
@@ -1159,6 +1195,8 @@ void checkBoxFunc(bool? val) {//this function is used to set the state of the ch
   
   
   else {
+    print("Flouride influences choice type");
+  myVal9=false;
   addRows();//this is done to show the changes in UI(it also reverts to the original state.)
   }
   
@@ -1200,19 +1238,56 @@ String adjustStringval(String value) {//this function removes ALL trailing zeroe
 }
 
 
+/*
+//This function will be used to adjust pH for the tables page, to ensure that pHs greater than 14 or less than 0 do not appear on the apge.
+String adjustpHFORTable(String val) {
+  if(double.parse(val)>14) {
+    return "14";
+  }
+  if(double.parse(val)<0) {
+    return "0";
+  }
+  return val;
+}
+*/
 
 
 
-void addRows(){//this function continously updates the list, and changes when new additions are made to the database, or on a new runtime.
+void addRows() async{//this function continously updates the list, and changes when new additions are made to the database, or on a new runtime.
+  //if(myTrigger=false) {//detects if flouride is calling it
+
+  //}
+
+
   
   checkBool=true;//this means that the state of the checkbox will be changed(back to checked)
   //The checkbox is intentionally changed based on each adjustment of the rows to ensure that the user can filter values as they wish.
 
 
+  //myDatabase.onChildChanged
+  //myDatabase.onChildChanged.listen((DatabaseEvent currEvent2) {
+      //if(currEvent2.snapshot.key.toString()=="Flouride Data(ppm) added at " || currEvent2.snapshot.key.toString()=="Flouride Data(ppm) value ") {
+        //return;
+        //print("HelloMatey");
+      //}
+  //});
 
-  myDatabase.onValue.listen((DatabaseEvent currEvent) {//onValue detects any change to the 'data' node of the database. 
+  
+
+
+  //myDatabase.onValue.listen((DatabaseEvent currEvent) async {//onValue detects any change to the 'data' node of the database. 
   //It also just generally includes the entire database as a whole.
-    DataSnapshot currSnapshot=currEvent.snapshot;//this snapshot represents the current state of the database.
+    //if(currEvent.snapshot.child("Flouride Data(ppm) added at ").key=="Flouride Data(ppm) added at " 
+    //|| currEvent.snapshot.child("Flouride Data(ppm) value ").key=="Flouride Data(ppm) value ") {
+      //return;
+    //}
+
+
+    
+    
+    DataSnapshot currSnapshot= await myDatabase.get();//this essentially just takes in the entire database as a referred screenshot
+    //Something to keep in mind, is that this is done so there is no flouride interference.
+    //currEvent.snapshot;//this snapshot represents the current state of the database.
     
     Object? currData=currSnapshot.value;//this represents the currentData in its entirety. It will be used evantually for transferring values
     //Object? is used here, as this is the datatype of this value
@@ -1247,6 +1322,9 @@ void addRows(){//this function continously updates the list, and changes when ne
 
       //print(myMap1.length);
       //print(currentChoice2!.label);
+
+      
+
 
       int entryCount=0;//this counter is used to determine whether or not the specific number of entries were traversed or not. and if statement will be made in the outerloop to check if it has exceeded the actual number of entries in the database.
       databaselength=0;//this variable is used for the function/purpose of ensuring that the database length is greater than or equal to the user inputted entry amount.
@@ -1285,8 +1363,11 @@ void addRows(){//this function continously updates the list, and changes when ne
       val.forEach((propertyKey, propertyVal) {//this iterates through the properties("pH","limedispension", and"TimeCreated") 
       //This value has 3 properties(pH, lime dispension, and time), and each property has its own value
       
-      
+
+        //this was inserted after integration, as there is chance that some of the previous uninitialized data from other subsystems may be out of range. This helps to offset that issue by truncating out of range data to 14/0
         if(propertyKey=="pHvalue") {//if the property is pH, then this will be done
+        
+        //this calls the adjust pH function to avoid pHs out of bounds.
         pH=propertyVal.toString();//toString is used here, to ensure conversion is proper. propertyVal in this case is pH
         }
 
@@ -1358,13 +1439,28 @@ void addRows(){//this function continously updates the list, and changes when ne
   }
 
 //the following loop is used to determine the last timestamp value
+
+List<String> timeStamps=[];//this list represents a timeStamps of all strings.
+List<String> allpH=[];//this list represents all pH Values.
+List<String> allLimeDisp=[];//this list represents all LimeDispension values.
+int z=0;
 myMap1.forEach((key7, val7) {//similar to the loop above, this loops through each child, and its respective value(the value has 3 properties: pH, lime dispension, and timestamp)
   if(key7!="Fluoride Data(ppm) added at " && key7!="Fluoride Data(ppm) value ") {//this checks to ensure that flouride and its associated time is not being considered(as these already have exactly one value per key)
   //flouride is being checked here, as flouride has a different format.
   val7.forEach((key9, val9) {//this loops through the 3 associated values of the child: pH, lime dispension, and timestamp
     if(key9=="Created at") {//this checks if the key is Created at, indicating the associated value will be timestamp
       lastVal=val9.toString();//this iterates through all the keys/values, until the last String value represents the the last time value.
+      timeStamps.add(val9.toString());
+      //print(timeStamps[z]);
+      z++;
     }
+    if(key9=="pHvalue") {
+      allpH.add(val9.toString());
+    }
+    if(key9=="LimeDispensionRate") {
+      allLimeDisp.add(val9.toString());
+    }
+    
   });
   }
 });
@@ -1445,7 +1541,7 @@ if(currentChoice2!.label=="Last Second" || currentChoice2!.label=="Last Minute" 
           //the DateFormat declaration can be found in the global variables list.          
 
 
-          if(returninRange(time2, time1)) {//this checks to see whether or not the value is in the proper range. 
+          if(firstVal!=""||returninRange(time2, time1)) {//this checks to see whether or not the value is in the proper range. 
           //User input is used to determine the ranges.
 
           //if((time2.difference(time1)).inMinutes<=1) {
@@ -1470,7 +1566,9 @@ if(currentChoice2!.label=="Last Second" || currentChoice2!.label=="Last Minute" 
         }
         
           if(propertyKey=="pHvalue") {//if the property is pH, then this will be done
-          pH=propertyVal.toString();//toString is used here, to ensure conversion is proper
+          //this calls the adjust pH function to avoid pHs out of bounds.
+        pH=(propertyVal.toString());//toString is used here, to ensure conversion is proper. propertyVal in this case is pH
+        //toString is used here, to ensure conversion is proper
         }
 
           if(propertyKey=="LimeDispensionRate") {//checks if the current property is lime dispension
@@ -1559,7 +1657,7 @@ if(currentChoice2!.label=="Last Second" || currentChoice2!.label=="Last Minute" 
     //i starts off being 0, and should be incremented on each iteration.
     //int i=0;//i represents the incrementation variable
     
-
+int checklength=1;
 
 //print(uniqueEntries);
 int uniqueEntries=1;//this represents the number of unique entries. Each cell will check if its timestamp is identical or different from the previous
@@ -1607,7 +1705,7 @@ print("Hello");
   }
 
   */
-
+  
 
     else//this is for the case when numEntries is <=uniqueEntries and greater than 1.
     {
@@ -1615,9 +1713,13 @@ print("Hello");
     theRows=[];//this resets the rows to be empty. New data rows will be added in each iteration of this loop.
     List<String> wasused=[];//this represents a list of all string timestamps that have been added. This avoids repeats in the displayed data.
 
+      int j=0;//j will be used as the indexing variable for new LINEAR MERGE
+      //Linear merge to be used to help improve processing speed of this operation.
     for(int i=0;i<numEntries;i++) {//this traverses through the number of user entries.
       //print(allTime[i]);
 
+      //print(checklength);
+      //checklength++;
       double targTime=(((actfirstVal.millisecondsSinceEpoch))+(i*gapbetweenEntry));
       //this determines the targettime(in milliseconds since epoch, by obtaining the first time in seconds since epoch +(iterator value*gapBetweenEntry))
       //This value is rounded primarily in order to convert to int.
@@ -1628,6 +1730,79 @@ print("Hello");
 
       String closestTime="";//this represents the time that was found which is closest to targTime
 
+      //bool valofInterest=false;//val of interest was an indicator variable which is set based on whther or not the closest time stamp was found
+      String pHfound="";//for that corresponding closest timestamp, pHfound represents the corresponding pH value
+      String limedispfound="";//for that corresponding closest timestamp, pHfound represents the corresponding lime dispension value
+
+
+        //timeStamps, allpH, and allLimeDisp were all previosuly made lists that contain ALL values from database.
+        //This was chosen in replacement of a direct linear search(due to performance concerns)
+        //This algorithm was done, bc it moves along with the target timestamps in time(instead of starting from beginning and searching for closest every time)
+        
+        while(j<timeStamps.length && dateFormat.parse((timeStamps[j]).replaceAll(RegExp(r'\s+'), ' ')).millisecondsSinceEpoch<targTime) {
+          //continously increases j until it finds the first timestamp that is greater in value than the target time. the second thing after the && is the current timestamp value in millis
+          j++;
+        }//the benefit behind doing this method, is that(assuming j!=0), doing this forces the fact that the closest time stamp MUST BE: 
+        //timeStamps[j-1]: closest timestamp before computed time 
+        //OR 
+        //timeStamps[j]: closest timestamp AFTER computed time
+        //This essentially finds the nearest neighbors extremely quickly each time
+        
+
+        if(j==0) {//this is an edge case, if suprisnigly, the first timestamp from the database is actually the closest to the target Time Stamp.
+          closestTime=timeStamps[j];//then the closest time, is in fact the first time in the database.
+          pHfound=allpH[j];//sets proper pH value
+          limedispfound=allLimeDisp[j];//sets proper j value.
+        }//j-1 CAN NOT be used here, as otherwise, it will lead to out of bounds error.
+
+
+        else{//if the found index is NOT 0, then we need to compare two indices
+          //j: adjacent timestamp greater than target
+          //j-1: adjacent timestamp less than target
+          //whichever one is closer to the target, will be the one that will be used.
+          int currValMilli=(dateFormat.parse((timeStamps[j]).replaceAll(RegExp(r'\s+'), ' ')).millisecondsSinceEpoch);
+          //the above int value represents the current timestamp's value in milliseconds
+          //Note: this timestamp is adjacent to and AFTER OR EQUAL TO the computed target TimeStamp
+
+          int prevValMilli=(dateFormat.parse((timeStamps[j-1]).replaceAll(RegExp(r'\s+'), ' ')).millisecondsSinceEpoch);
+          //the above int value represents the previous timestamp's value in milliseconds
+          //Note: this timestamp is adjacent to and BEFORE OR EQUAL TO the computed target TimeStamp
+          
+          
+          //ALSO NOTE: corresponding pH/limedisp values are also set here too, as the appropiate index is found.
+
+
+          if(((prevValMilli-targTime).abs()<(currValMilli-targTime).abs())
+          &&(timeStamps[j-1]!=wasused.elementAt(wasused.length-1) || wasused.isEmpty)
+          ) {//if the previous value is closer, this also checks that this previous value was NOT USED BEFORE
+            //the part after && gurantees repeats will not occur.
+
+
+            //then the timestamp before is the one that is closer to the target
+            closestTime=timeStamps[j-1];
+            pHfound=allpH[j-1];
+            limedispfound=allLimeDisp[j-1];
+          }
+
+          else {//Otherwise, the timestamp after is the closest time.
+            closestTime=timeStamps[j];
+            pHfound=allpH[j];
+            limedispfound=allLimeDisp[j];
+          }
+        }
+        if(j<timeStamps.length-1) {//j should only be incremented so that it wont be equal to or greater than timestamps.length
+        j++;//to gurantee that time is moving forwards
+        //Bc, all timestamps are in increasing order, repeats will not occur AND values of course will be increasing.
+        }
+
+    print(closestTime);
+    
+
+
+
+//Below was the algorithm originally created in 403, it contains same functionality, however, is significantly LONGER.
+//The benefit of the above revamped algorithm is the parallel search going on, rather than the sequential search below.
+/*
       
       myMap1.forEach((key10, val10) {
         if(key10!="Fluoride Data(ppm) added at " && key10!="Fluoride Data(ppm) value ") {//checks to ensure flouride is not considered, as flouride has a different data structure.
@@ -1636,9 +1811,10 @@ print("Hello");
             DateTime timeDate=dateFormat.parse(val11.toString().replaceAll(RegExp(r'\s+'), ' '));//this represents the current time of interest. .replaceAll is used to ensure format is consisten across all strings.
             int actualdiff=((timeDate.millisecondsSinceEpoch)-targTime).round().abs();//this determines the difference between the currentTime stamp's second value, and subtracts it from the other targettimestamp.
             if((actualdiff<minimumDifference) 
-            && (wasused.isEmpty || (!wasused.contains(val11.toString()) && (timeDate.isAfter(dateFormat.parse(wasused.elementAt(wasused.length-1))))))
+
+            && (wasused.isEmpty || (!wasused.contains(val11.toString()) && (timeDate.isAfter(dateFormat.parse(wasused.elementAt(wasused.length-1).replaceAll(RegExp(r'\s+'), ' '))))))
             
-            ) {//this checks if the actual difference is less than the minimum difference. It also checks whether or not the list is empty(if this is the first time value being added to the list OR if the list does not contain this value AND this time value is after the previous used time value)
+            ){//this checks if the actual difference is less than the minimum difference. It also checks whether or not the list is empty(if this is the first time value being added to the list OR if the list does not contain this value AND this time value is after the previous used time value)
             //this: minimizes error(difference between desired time difference, and actual time difference), avoids repeats, and ensures the time is always going forwards.
             //These 3 parts are all important, to ensure the display is proper and smooth.
 
@@ -1646,8 +1822,27 @@ print("Hello");
               minimumDifference=actualdiff;//this resets the value of actualdifference
               closestTime=val11.toString();//this sets closestTime to this value
               //print(actualdiff);
+              valofInterest=true;//this is the value whos propertyies should be added to database.
+            }
+            else {
+              valofInterest=false;
             }
           }
+          if(valofInterest) {
+            if(key11=="pHvalue") {//if the property is pH, then this will be done
+          //this calls the adjust pH function to avoid pHs out of bounds.
+        pHfound=(val11.toString());//toString is used here, to ensure conversion is proper. propertyVal in this case is pH
+        //toString is used here, to ensure conversion is proper
+        }
+
+          if(key11=="LimeDispensionRate") {//checks if the current property is lime dispension
+          limedispfound=val11.toString();//sets the display value as the corresponding value of the limedispensionrate properly.
+          //print(limedisp);
+        }
+
+          }
+            //}
+          //}
           //if(key11=="pHvalue" && val11==3.46) {
             //print()
           //}
@@ -1657,9 +1852,13 @@ print("Hello");
         }
       });
 
+    }
 
+
+*/    
       //The following logic is to find the corresponding pH and/or lime dispension value with respect to the timestamp
       
+      /*
       
       bool valofInterest=false;//val of interest is an indicator variable which is set based on whther or not the closest time stamp was found
       String pHfound="";//for that corresponding closest timestamp, pHfound represents the corresponding pH value
@@ -1693,7 +1892,7 @@ print("Hello");
         }
       });
 
-
+*/
 
       setState(() {//setState is used here, to ensure that the changes of these rows will be reflected in the UI.
       //it is used specifically here, as this is after the child has been traversed through.
@@ -1727,15 +1926,16 @@ print("Hello");
 
 
       
-      wasused.add(closestTime);//this adds the closest time to the list of used timestamps. This will be used in the next iteration as a basis of iteration.
+      wasused.add(closestTime);//this adds the closest time to the list of used timestamps. This will be used in the next iteration as a basis of comparison.
 
 
-      print(wasused.elementAt(i));
+      //print(wasused.elementAt(i));
     }
 
     //print(firstVal);
     //print(lastVal);
     //print(totalTimeGap);
+
   }
 
 
@@ -1762,7 +1962,7 @@ print("Hello");
 
   
 
-  });
+  //});
 
 }
 
@@ -1807,7 +2007,12 @@ void dispose() {//destroys the current instance. This is done(similarly to the r
       labelText: returnLabel(), //this is conditioned on the returnLabel function
     ),
     maxLength: 9, //max amount of characters for flouride input
-    onSubmitted: readInandWriteFlouride, //this is conditioned on the flouride sending function(the user has to press submit for the state to update)
+    onSubmitted: 
+    //onSubmitted: (value) {
+      //print("Flouride is submitted");
+    //}
+    
+    readInandWriteFlouride, //this is conditioned on the flouride sending function(the user has to press submit for the state to update)
     
 
   ),
@@ -1822,7 +2027,13 @@ void dispose() {//destroys the current instance. This is done(similarly to the r
       DropdownMenu<SelectedVal>(//the second child in this column, will be a dropdown menu of the value choice
         requestFocusOnTap: true,//when the user hovers over a value in the dropdown menu list, there is more focus to it. This is an aesthetic choice
         label:Text("Choose a value"),//this represents the internal label of the dropdown menu
-        onSelected: changeChoice,//when a value in the dropdown menu is selected, the previous value is changed to the selectedvalue. This calls the changeChoice
+        onSelected: 
+        changeChoice,//when a value in the dropdown menu is selected, the previous value is changed to the selectedvalue. This calls the changeChoice
+        /*(myVal) {
+          print("Dropdown Selected Value is now changed");
+        },*/
+        
+        
         dropdownMenuEntries: //insert dropdown menu stuff here.
         SelectedVal.listEntries,//listEntries was declared in the enum as a map. This is the entries from the dropdown menu
         expandedInsets: EdgeInsets.only(),//this creates a left offset effectively increasing length of the DropDown Menu. This ensures that Lime Dispension Rate doesn't cutoff its end
@@ -1845,8 +2056,15 @@ void dispose() {//destroys the current instance. This is done(similarly to the r
       labelText: returnLabel2(), //this returns the number of entries
     ),
     maxLength: 5, //max amount of characters for the number of entries is 5.
-    onSubmitted: numTableEntries, //this is conditioned on the flouride sending function(the user has to press submit for the state to update)
+    onSubmitted: 
+    /*(value) {
+      print("NumEntries is submitted");
+    }*/
     
+    numTableEntries, //this is conditioned on the flouride sending function(the user has to press submit for the state to update)
+    //onChanged: (value) {
+      //print("Da field changed: $value");
+    //},
 
   ),
 
@@ -1862,7 +2080,16 @@ void dispose() {//destroys the current instance. This is done(similarly to the r
 
         requestFocusOnTap: true,//when the user hovers over a value in the dropdown menu list, there is more focus to it. This is an aesthetic choice
         label:Text("Choose a time span"),//this represents the internal label of the dropdown menu
-        onSelected: changeChoice2,//when a value in the dropdown menu is selected, the previous value is changed to the selectedvalue
+        onSelected: 
+        
+        
+        
+        changeChoice2,//when a value in the dropdown menu is selected, the previous value is changed to the selectedvalue
+        /*(myVal) {
+          print("Dropdown Time is now changed");
+        },*/
+        
+        
         dropdownMenuEntries: //insert dropdown menu stuff here.
         TimeVal.listEntries2,//listEntries2 was declared in the enum as a map.
         expandedInsets: EdgeInsets.only(),//this creates a left offset effectively increasing length of the DropDown Menu. This ensures values do not overgo the length of the textbox.
@@ -1881,7 +2108,15 @@ void dispose() {//destroys the current instance. This is done(similarly to the r
     SizedBox(width:230, //this provides the width of the checkbox.
       child:
       
-      Checkbox(activeColor: Colors.purple,checkColor: Colors.white, value: checkBool, onChanged: checkBoxFunc)
+      Checkbox(activeColor: Colors.purple,checkColor: Colors.white, value: checkBool, onChanged: 
+      checkBoxFunc
+      /*(myVal) {
+          print("Checkbox");
+        },*/
+
+
+      
+      )
       //Checkbox active color is purple when checked, the check is white, the value is checkBool(as this is the value that determines the state of the checkbox), onChanged changes the states of the boolean variable(checkbool).
       
           
