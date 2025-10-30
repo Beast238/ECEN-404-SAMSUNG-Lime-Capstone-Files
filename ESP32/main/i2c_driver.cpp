@@ -11,20 +11,40 @@ i2c_master_dev_handle_t I2C_Driver::duty_cycle_select_handle;
 volatile double I2C_Driver::duty_cycle_1 = 0;
 volatile double I2C_Driver::duty_cycle_2 = 0;
 
-void I2C_Driver::set_lime_rate(double rate) // rate in mL/s
+// called in model.cpp
+void I2C_Driver::set_lime_rate(double targetRate) // rate in mL/s
 {
-    double dutyCycle = 0;
-    // todo rate to dutyCycle conversion
+    // characterized duty cycle to flow rate data points
+    double FLOW_RATE_POINTS[] = {0, 0.8333, 2, 3.541667, 5, 6, 6.66667, 8.3333, 8.83333, 10.25, 11.3333};
+    double DUTY_CYCLE_POINTS[] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+    int NUM_DATA_POINTS = sizeof(DUTY_CYCLE_POINTS) / sizeof(*DUTY_CYCLE_POINTS); // 11
 
-    I2C_Driver::set_duty_cycle_1(dutyCycle);
+    double targetDutyCycle = -1;
+    for (int i = 0; i < NUM_DATA_POINTS - 1; i++)
+    {
+        // if next data point is > targetRate, then we are in between this point and the next point
+        if (FLOW_RATE_POINTS[i + 1] > targetRate)
+        {
+            // basic lerp
+            double slope = (DUTY_CYCLE_POINTS[i + 1] - DUTY_CYCLE_POINTS[i]) / (FLOW_RATE_POINTS[i + 1] - FLOW_RATE_POINTS[i]);
+            targetDutyCycle = DUTY_CYCLE_POINTS[i] + slope * (targetRate - FLOW_RATE_POINTS[i]);
+            break;
+        }
+    }
+
+    targetDutyCycle = targetDutyCycle / 100.0f;
+    if (targetDutyCycle < 0 || targetDutyCycle > 1)
+    {
+        printf("Failed to find appropriate duty cycle for requested flow rate %f mL/s\n", targetRate);
+        targetDutyCycle = 0;
+    }
+    I2C_Driver::set_duty_cycle_1(targetDutyCycle);
 }
 
-void I2C_Driver::set_wastewater_rate(double rate) // rate in mL/s
+// called in I2C_Driver::i2c_loop
+void I2C_Driver::set_wastewater_rate()
 {
-    double dutyCycle = 0;
-    // todo rate to dutyCycle conversion
-
-    I2C_Driver::set_duty_cycle_2(dutyCycle);
+    I2C_Driver::set_duty_cycle_2(0.6); // fixed 60% (estimated 10m22s to drain 1 gal); change as needed
 }
 
 void I2C_Driver::set_duty_cycle_1(double dc) { I2C_Driver::duty_cycle_1 = dc; }
@@ -86,7 +106,7 @@ uint8_t I2C_Driver::i2c_select_valve(uint8_t valve)
 
 double I2C_Driver::i2c_set_duty_cycle(double dc)
 {
-    uint8_t dc_byte = (uint8_t)(dc * 256.0); // 100% is impossible with our DAC, so 256 not 255
+    uint8_t dc_byte = (dc >= 1.0) ? 255 : (uint8_t)(dc * 256.0); // 100% is impossible with our DAC, so 256 not 255
     i2c_write_byte(I2C_Driver::duty_cycle_select_handle, dc_byte);
     uint8_t new_dc_byte = i2c_read_byte(I2C_Driver::duty_cycle_select_handle);
     double new_dc = ((double)new_dc_byte) / 256.0;
@@ -102,6 +122,9 @@ void I2C_Driver::i2c_loop()
     while (true)
     {
         if (!I2C_Driver::i2c_ready) break;
+
+        I2C_Driver::set_wastewater_rate(); // fixed so just call here
+
         I2C_Driver::i2c_select_valve(1); // write 0x00 0x01 to 0x70 and read back
         I2C_Driver::i2c_set_duty_cycle(I2C_Driver::duty_cycle_1); // write 0x00 0xXX to 0x48 and read back
 

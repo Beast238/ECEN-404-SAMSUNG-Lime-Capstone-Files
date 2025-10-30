@@ -32,11 +32,15 @@ void pH_driver_loop()
 {
     while (pH_driver_ready)
     {
-        double val = pH_driver_single_read();
         //double pH = (val - 2861) / -160; // pH calibration curve results    
         //double pH = (val - 2608) / -140;
         // 1072.435385 = 7
+
+        double val = pH_driver_single_read();
         double pH = (val - 2129.44) / -140;
+        if (pH < 0) pH = 0;
+        if (pH > 14) pH = 14;
+
         if (ENABLE_INFO_LOGGING) printf("%f\n", val);
         if (ENABLE_INFO_LOGGING) printf("PH: %f\n", pH);
 

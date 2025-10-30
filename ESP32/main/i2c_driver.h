@@ -33,7 +33,7 @@ class I2C_Driver
         static volatile double duty_cycle_2;
 
         static void set_lime_rate(double rate);
-        static void set_wastewater_rate(double rate);
+        static void set_wastewater_rate();
         static void set_duty_cycle_1(double dc);
         static void set_duty_cycle_2(double dc);
         static void i2c_init();

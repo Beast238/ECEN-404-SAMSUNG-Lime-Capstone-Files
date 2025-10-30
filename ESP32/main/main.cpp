@@ -146,12 +146,39 @@ int set_valve_duty_cycle_cmd(int argc, char **argv)
     if (typ == "1" || typ == "lime")
     {
         I2C_Driver::set_duty_cycle_1(dutyCycleFloat / 100);
+        printf("set_duty_cycle_1 %f\n", dutyCycleFloat);
     }
     else if (typ == "2" || typ == "water")
     {
         I2C_Driver::set_duty_cycle_2(dutyCycleFloat / 100);
+        printf("set_duty_cycle_2 %f\n", dutyCycleFloat);
     }
 
+    return 0;
+}
+
+int set_lime_rate_cmd(int argc, char **argv)
+{
+    if (argc != 2)
+    {
+        printf("set_lime_rate expects one parameter\n");
+        // set_lime_rate <targetRate in mL/s>
+        return 1;
+    }
+
+    std::string rateStr = argv[1];
+    float rateFloat = std::stof(rateStr);
+
+    I2C_Driver::set_lime_rate(rateFloat);
+
+    printf("set_duty_cycle_1 %f\n", I2C_Driver::duty_cycle_1);
+    return 0;
+}
+
+int reboot_cmd(int argc, char **argv)
+{
+    fflush(stdout);
+    esp_restart();
     return 0;
 }
 
@@ -188,6 +215,20 @@ void init_console()
         .func = &set_valve_duty_cycle_cmd,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd3));
+    const esp_console_cmd_t cmd4 = {
+        .command = "set_lime_rate",
+        .help = "Execute I2C_Driver::set_lime_rate (set_lime_rate <targetRate in mL/s>)",
+        .hint = NULL,
+        .func = &set_lime_rate_cmd,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd4));
+    const esp_console_cmd_t cmd5 = {
+        .command = "reboot",
+        .help = "Reboot the microcontroller immediately",
+        .hint = NULL,
+        .func = &reboot_cmd,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd5));
 }
 
 extern "C" void app_main(void)
