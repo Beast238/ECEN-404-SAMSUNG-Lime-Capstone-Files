@@ -1,3 +1,5 @@
+// ignore_for_file: unnecessary_brace_in_string_interps
+
 import 'dart:async'; //imports timers
 import 'dart:collection';
 //import 'dart:ffi';
@@ -21,7 +23,9 @@ import 'package:intl/intl.dart';//this represents the package to be used
 
 
 
-void main() async{ //async is a tool to utilize the await function, was utilized here to ensure await function properly works. This is done in main to ensure connection before other stuff occurrs.
+void main() async{ //async is a tool to utilize the await function, was utilized here to ensure await function properly works. 
+//This is done in main to ensure connection before other stuff occurrs.
+//Database is being attempted being connected to.
 
   //The following four lines have been taken by Firebase website. These are used to ensure syncing/connectivity capabilites with Firebase
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,7 +60,7 @@ class MyApp extends StatelessWidget {//this represents the instantiation of the 
   @override
   Widget build(BuildContext context) {//this builds the widget
     return MaterialApp(debugShowCheckedModeBanner : false,//the debug banner on the app will not be shown
-      title: 'Wastewater Treatment Process Control',//this is the title of the webpage bar.
+      title: 'Samsung Lime Treatment User Control System',//this is the title of the webapp's bar.
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -130,18 +134,6 @@ class _MyHomePageState extends State<MyHomePage> with AutomaticKeepAliveClientMi
   
 
 
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
 
 
 
@@ -170,6 +162,7 @@ String adjustStringval2(String value2) {//this function removes ALL trailing zer
 
   return returnVal2;//this returns the new string of interest.
   
+  //This is ensures a returned value that DOES NOT have excessive 0's.
 
 }
 
@@ -179,7 +172,9 @@ String firstTimeStamp="HomePage4"; //represents firstTimeStamp.
 
 //listener/display functions
 String showpHData() { //This is a function in the class that is used to display realtime values. It returns a pH of type String.
-    DatabaseReference myDatabase=FirebaseDatabase.instance.ref('data'); //This is the instance of the database. This code will read/write from this instance. 'data' is the name of the data stored in the database.
+    DatabaseReference myDatabase=FirebaseDatabase.instance.ref('data'); //This is the instance of the database. 
+    
+    //This code will read/write from this instance. 'data' is the name of the data stored in the database.
 
 
     //In the .json format, the database is structured with header 'data', unique ID tags(which are randomized combinations of letters and numbers), and the associated pH string value, lime dispension string value, and timestamp with each ID
@@ -194,7 +189,7 @@ String showpHData() { //This is a function in the class that is used to display 
       final pH = event.snapshot.child('pHvalue').value; //the new pH is the upcoming(realtime) event's child's value. 'pHvalue' is the property that specifies pH value, and is why it is used here.
       //this final value is a dynamic value
         
-      setState(() { //adjusts value of origpH dynamically on the screenstate
+      setState(() { //adjusts value of origpH dynamically on the screen
       if(pH!=null) {//checks to ensure that final pH is not null. This check is placed here, as when adjusting flouride values(simaltaneously as the pH and lime dispension change in real-time), it causes pH to be null. This check ensures that the value displayed on the screen will NEVER be null.
         origpH = pH.toString(); //ensures origpH is in terms of string of dynamic pH.
       }
@@ -339,24 +334,13 @@ void switchState(bool val) { //boolean value is switched on/off. This is the und
 
 double samplingTime=3; //sets samplingTime to initial default value(which as of now is its smallest value). Sampling time can be between 3-6s.
 
-void sliderState(double val2) {//Need to look into how this changes, when adjusting the slider.
+void sliderState(double val2) {
   
   
   setState(() { //dynamically sets the state of samplingTime to val2. Val2 is a dynamically changing parameter, which represents the user inputted sampling time.
     samplingTime=val2;//similar to the switch, the slider's sampling Time value is also changed based on user input..
   });
 
-  /*
-  for(int i=theData.length-1;i>=0;i--) {
-    if(theData[i].x.toDouble()>=myStopWatch.elapsedMilliseconds/1000) {
-      theData.removeAt(i);
-    }
-  }
-
-  */
-
-
-  //starttheWatch(myStopWatch.elapsedMilliseconds/1000);
   
 }
 
@@ -419,6 +403,7 @@ void resettheWatch() {//resets time keeping back to 0, and goes from there. This
 
 }); 
 
+  //Many aspects are reset here....
 
   myStopWatch.reset(); //resets the watch back to 0s temporarily.
   light=true; //sets the value of the on/off switch light to true(force resets it).
@@ -562,30 +547,6 @@ String returnMessage="";//this represents the message to be returned
 
     return Scaffold(//framework for building this webapp. This is going to especially used as the body of the webapp.
 
-      //appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        //backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        //showData;
-        //if(origTime!="HomePage3")
-        //title: Text("Realtime pH is: ${showpHData()}. Realtime Lime DispensionValue(g/L) is: ${showlimedispensionData()}. StopWatch1 Time is Value is: ${myStopWatch.elapsedMilliseconds/1000} Sending Value in s after epoch is: ${showRealTime()}"), //origpH and origFlouride is printed here, and updated in realtime. The $ and brackets are part of an interpolation process that allows for the embeddedment of strings. This text will later be formatted when the app building process is started.
-        
-        //leading: Icon(Icons.notification_add, color: Colors.amber)
-      //),
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        
-        //Containers are blocks in code
-        //boxdecoration is used for boxes.
-
-        //This was used to obtain the image.
-        //Image.asset('assets/images/samsung_logo_PNG9.png', fit: BoxFit.cover, cacheHeight:4 ,), //This was a test for image placement.
-
-
-
         //THIS WILL BE USED FOR THE CONSTRUCTION OF GRAPHS
         body: Stack( //stack is used here for the sake of overlaying widgets, and ensuring that the widgets can all be placed together in a row and other portions as well.
 
@@ -658,6 +619,7 @@ String returnMessage="";//this represents the message to be returned
                 spots: theData, //plots points(gives Data that the points will be based on). Spots really just means data
                 isCurved: true, //allows for plot to be curved
                 color: Colors.green, //color of lines and points is green.
+                preventCurveOverShooting: true//added to ensure curves dont go out of bounds
               ),
             ],
             )
@@ -708,7 +670,7 @@ String returnMessage="";//this represents the message to be returned
   */
 
 IconButton(//this icon shows the symbol at the end of the text field(suffix)
-        icon: Icon(light ?  Icons.pause_presentation_outlined : Icons.smart_display_outlined), //when light is true, pause is shown. When light is false, play is shown
+        icon: Icon(light ?  Icons.pause_presentation_outlined : Icons.smart_display_outlined), //when light is true, pause is shown. When light is false, play is shown. This is a toggable button....
         onPressed: () {
           switchState(!light);//this ensures that the state is properly switched. !light just means that it is the opposite of the previous value of light
         } ,
@@ -740,7 +702,7 @@ IconButton(//this icon shows the symbol at the end of the text field(suffix)
 
 
     Positioned( //this positions text in specific places
-      top:7, //40 pixels below the very top
+      top:7, //7 pixels below the very top
       right:30, //30 pixels left of the very right
       //This text contains all the important characteristics: changing color/font size will be done later. This removes the need of putting these values in the dashboard(thedashboard will now be used for switching between different parts(navigation).)
       //The stuff that are included is: timegap between play and previous pause, stopwatch elapsed time, Real-time pH value, Real-Time Lime Delivery Value, display message of button spamming, and then of course, the text style.
@@ -851,7 +813,7 @@ class TablePage extends StatefulWidget {//tablepage does change with state, it i
   const TablePage({super.key, required this.title2});//tablepage constructor. title may or may not be deleted.
   
   
-  final String title2;//title is a property of this class, this may be adjusted later
+  final String title2;//title is a property of this class, this may be adjusted later. It is a passable parameter.
   //title="HelloMate";
   @override //override is used to create/destroy instances(will also be seen in the table code). In this case, it creates a new instance of the table page state.
   State<TablePage> createState() => _TablePageState();//ensures state of tablepage is able to change
@@ -877,6 +839,8 @@ enum SelectedVal {
       (SelectedVal theVal)//this is an iterator of type SelectedVal(the enum)
       =>ValueEntry(label: theVal.label, value:theVal)//this shows both the value and label associated with the dropdown menu entry.
       //This creates an entry with specific properties
+
+      //theVal is the thing outside, while theVal.label is the parameter inside the parantheses.
 
     )
   );
@@ -933,12 +897,6 @@ class _TablePageState extends State<TablePage> with AutomaticKeepAliveClientMixi
 //Display a message in the case that the number of entries is greater than the amount in that time frame. Display the max amount of entries.
 
 
-//Show the values using datatable, and use the vales of datetime duration.
-
-//For example: the person says they want to see 30 entries from the last day.
-//You want to get the first entry of the last day, and then the next entry is 86400/30. This should be the first value at that time. Then the next entry is 86400/30 of the previous, etc.
-
-
 final TextEditingController theController = TextEditingController(); //this controls the editing of the text of the flouride value. This may be deleted
 
 final TextEditingController theController2 = TextEditingController(); //this controls the editing of the text of the amount of entries. This may be deleted
@@ -950,8 +908,6 @@ bool isValid=false; //instantiates an indicator variable that is used to check f
 int count2=0; //this is an indicator to obtain the number of variables checked. This is also used to ensure a label in the userinput.
 
 String prevFlouride="";
-bool myVal9=false;//this is going to be used to detect if there is a change in flouride. if there is a change in flouride, addRows should not be executed.
-
 
 void readInandWriteFlouride(String inputFlouride) async{ //inputFlouride is the value coming in from the Flutter webapp. async is used here to ensure it is properly added to the database.
   
@@ -1011,9 +967,7 @@ SelectedVal? currentChoice;//this represents the currently selected value from t
 void changeChoice(SelectedVal? choice) {//question mark is used here, as it is unknown whether or not the value is null
   setState(() {//changes are reflected UI.
     currentChoice=choice;//changes the value of the currentchoice to choice(this ensures a change in state)
-    print("Flouride influences choice type");
   });
-  myVal9=false;
   addRows();//after the change in choice, the addRows function is called. This is to ensure that the selected value of interest is properly filtered in the datatable(and so that the UI will be updated).
 }
 
@@ -1047,11 +1001,11 @@ void numTableEntries(String newNum) {//this function connected the number of ent
   if(isValid2) {//if the value is able to convert to a nonzero integer...
     setState(() {
       numEntries=int.parse(newNum);//the state of the current number of entries is set to the integer version of the number of rows. This will be used in the addRows function.
-      print("Flouride influences number of rows");
+      
     });
   }
   //print(numEntries);//you need to check to ensure that num entries DOES NOT EQUAL 0. There can not be 0 rows in the table. The number of rows are integers greater than or equal to one.
-  myVal9=false;
+  
   addRows();//addRows is called here, as the state of the row will change based on the number of entries in the data table.
 }
 
@@ -1073,9 +1027,7 @@ TimeVal? currentChoice2;//this represents the currently selected value from the 
 void changeChoice2(TimeVal? choice2) {//question mark is used here, as it is unknown whether or not the value is null
   setState(() {
     currentChoice2=choice2;//changes the value of the currentchoice2 to choice2(this ensures a change in state)
-    print("Flouride influences time type");
   });
-  myVal9=false;
   addRows();//addRows is called here, as the state of the row will change based on the time duration to be used.
 }
 
@@ -1195,8 +1147,6 @@ void checkBoxFunc(bool? val) {//this function is used to set the state of the ch
   
   
   else {
-    print("Flouride influences choice type");
-  myVal9=false;
   addRows();//this is done to show the changes in UI(it also reverts to the original state.)
   }
   
@@ -1252,40 +1202,17 @@ String adjustpHFORTable(String val) {
 */
 
 
-
 void addRows() async{//this function continously updates the list, and changes when new additions are made to the database, or on a new runtime.
-  //if(myTrigger=false) {//detects if flouride is calling it
-
-  //}
-
 
   
   checkBool=true;//this means that the state of the checkbox will be changed(back to checked)
   //The checkbox is intentionally changed based on each adjustment of the rows to ensure that the user can filter values as they wish.
 
 
-  //myDatabase.onChildChanged
-  //myDatabase.onChildChanged.listen((DatabaseEvent currEvent2) {
-      //if(currEvent2.snapshot.key.toString()=="Flouride Data(ppm) added at " || currEvent2.snapshot.key.toString()=="Flouride Data(ppm) value ") {
-        //return;
-        //print("HelloMatey");
-      //}
-  //});
-
   
 
-
-  //myDatabase.onValue.listen((DatabaseEvent currEvent) async {//onValue detects any change to the 'data' node of the database. 
-  //It also just generally includes the entire database as a whole.
-    //if(currEvent.snapshot.child("Flouride Data(ppm) added at ").key=="Flouride Data(ppm) added at " 
-    //|| currEvent.snapshot.child("Flouride Data(ppm) value ").key=="Flouride Data(ppm) value ") {
-      //return;
-    //}
-
-
     
-    
-    DataSnapshot currSnapshot= await myDatabase.get();//this essentially just takes in the entire database as a referred screenshot
+    DataSnapshot currSnapshot = await myDatabase.get();//this essentially just takes in the entire database as a referred snapshot
     //Something to keep in mind, is that this is done so there is no flouride interference.
     //currEvent.snapshot;//this snapshot represents the current state of the database.
     
@@ -1345,10 +1272,11 @@ void addRows() async{//this function continously updates the list, and changes w
       //print("${currentChoice!.label} Cheers");
       
       myMap1.forEach((key,val) {//this iterates through the values that were transferred
-      if(key!="Fluoride Data(ppm) added at " && key!="Fluoride Data(ppm) value ") {//this checks to ensure that flouride and its associated time is not being considered(as these already have exactly one value per key)
+      
+      if(key!="Fluoride Data(ppm) added at " && key!="Fluoride Data(ppm) value " && key!="Valve Shutoff Status changed at " && key!="Valve Shutoff Status ") {//this checks to ensure that flouride and valve signal and its associated time is not being considered(as these already have exactly one value per key)
       //For flouride, there are not multiple properties for each key.
       //Flouride will be considered seperately. This if statement may be changed later.
-
+      //This is also no updated to ensure that motor control flag is not considered either
       
       
       if(entryCount<numEntries) {//this only displays values if the Entrycounter is less than the number of entries(where number of entries is user input)
@@ -1434,19 +1362,21 @@ void addRows() async{//this function continously updates the list, and changes w
   //On April 7th 2025, the database length is 5465 entries.
         //print("You asked for more entries than are possible for the associated value, only $databaselength entries are shown");
         //print(databaselength);
-        errorMessage="You asked for more entries than are possible for the associated value,\nonly $databaselength entries are shown";
+        errorMessage="You asked for more entries than are possible for the associated value,\nonly $databaselength entries are shown";//message for exceeding Entries.
         showExceedMessage=true;//this means that the message will be displayed to the logic later.
   }
 
-//the following loop is used to determine the last timestamp value
+//the following loop is used to determine the last timestamp value, and set lists of different values to respective individual values.
 
-List<String> timeStamps=[];//this list represents a timeStamps of all strings.
+List<String> timeStamps=[];//this list represents all timeStamps of all strings.
 List<String> allpH=[];//this list represents all pH Values.
 List<String> allLimeDisp=[];//this list represents all LimeDispension values.
 int z=0;
 myMap1.forEach((key7, val7) {//similar to the loop above, this loops through each child, and its respective value(the value has 3 properties: pH, lime dispension, and timestamp)
-  if(key7!="Fluoride Data(ppm) added at " && key7!="Fluoride Data(ppm) value ") {//this checks to ensure that flouride and its associated time is not being considered(as these already have exactly one value per key)
+  if(key7!="Fluoride Data(ppm) added at " && key7!="Fluoride Data(ppm) value " && key7!="Valve Shutoff Status changed at " && key7!="Valve Shutoff Status ") {//this checks to ensure that flouride and its associated time is not being considered(as these already have exactly one value per key)
   //flouride is being checked here, as flouride has a different format.
+  //this also checks to ensure that the motor control flag is not updated.
+  
   val7.forEach((key9, val9) {//this loops through the 3 associated values of the child: pH, lime dispension, and timestamp
     if(key9=="Created at") {//this checks if the key is Created at, indicating the associated value will be timestamp
       lastVal=val9.toString();//this iterates through all the keys/values, until the last String value represents the the last time value.
@@ -1455,10 +1385,10 @@ myMap1.forEach((key7, val7) {//similar to the loop above, this loops through eac
       z++;
     }
     if(key9=="pHvalue") {
-      allpH.add(val9.toString());
+      allpH.add(val9.toString());//adds pH value to list
     }
     if(key9=="LimeDispensionRate") {
-      allLimeDisp.add(val9.toString());
+      allLimeDisp.add(val9.toString());//adds limedisp values to associated list.
     }
     
   });
@@ -1513,10 +1443,9 @@ if(currentChoice2!.label=="Last Second" || currentChoice2!.label=="Last Minute" 
   theRows=[];//this resets the rows to be empty before the loop.
   //amount=0;
 
-
   myMap1.forEach((key,val) {//this iterates through the values that were transferred
-      if(key!="Fluoride Data(ppm) added at " && key!="Fluoride Data(ppm) value ") {//this checks to ensure that flouride and its associated time is not being considered(as these already have exactly one value per key)
-      
+      if(key!="Fluoride Data(ppm) added at " && key!="Fluoride Data(ppm) value "&& key!="Valve Shutoff Status changed at " && key!="Valve Shutoff Status ") {//this checks to ensure that flouride and its associated time is not being considered(as these already have exactly one value per key)
+      //Once again, this checks that motor control flag(s) are not updated as well.
 
       String currtime="";//this represents the current time in the database(since the duration has elapsed for)
       String pH="";//this represents the pH value
@@ -1657,33 +1586,20 @@ if(currentChoice2!.label=="Last Second" || currentChoice2!.label=="Last Minute" 
     //i starts off being 0, and should be incremented on each iteration.
     //int i=0;//i represents the incrementation variable
     
-int checklength=1;
-
-//print(uniqueEntries);
-int uniqueEntries=1;//this represents the number of unique entries. Each cell will check if its timestamp is identical or different from the previous
-//it is set as 1, as the very first set of cells are a uniqueEntry.
-for(int i=0;i<theRows.length;i++) {//loops the rowsList
-  if(i>=1) {
-    if((theRows[i].cells[1].child as Text).data!=(theRows[i-1].cells[1].child as Text).data) {//this checks if the current cell's timestamp is different from the previous.
-      //cells[1] represents the time stamp, .child is used to obtain the data, as Text type converts it, and .data is used to avoid any errors
-      uniqueEntries++;
-    }
-  }
-}
-
-print(uniqueEntries);//this prints the number of unique entries
-print("Hello");
 
 
 
+int checklength=0;//this variable is used to determine the amount of entries actually being spaced.
+//It will be important later(in the else block)
+
+
+//This is an edge case.
     if(numEntries==1) {//if it is just 1 entry, meaning that differences can not be determined...
     //Then only the last row will be displayed.
       for(int i=theRows.length-2;i>=0;i--) {//this traverses backwards, and it does NOT remove theRows.length-1
         theRows.removeAt(i);
       }
       errorMessage="Because of this input, only the latest data value is shown";
-      
-      
     }
 
 
@@ -1693,33 +1609,20 @@ print("Hello");
     //now it is important to determine the number of unique timestamps.
 
 
-/*    
-    else if(numEntries>uniqueEntries){ //if the user inputted number of entries is greater than the number of unique entries, this causes a lot of issues.
-    //in this case, you have to check for the number of entries being in between the amount of unique entries and the max number of entries
-    //it will show the first y amount of entries(where y is less than the number amount).
-    //For example, if there 8 unique timestamps, and the user enters in the number 9, there should be shown the first 9 entries of that time span.
-    for(int i=theRows.length-1;i>=(numEntries);i--) {//i starts at the last element, and ends at numEntries
-        theRows.removeAt(i);
-    }
-    errorMessage="In order to see even spacing of values for the last ${returnErrorMessageTime()}, \nyou must enter in a value less than or equal to the number of unique timestamps and greater than 1.\nThe number of unique timestamps is $uniqueEntries\nBecause of this input, only the first $numEntries values are shown";
-  }
-
-  */
   
 
     else//this is for the case when numEntries is <=uniqueEntries and greater than 1.
     {
     //errorMessage="The number of unique entries is: $uniqueEntries.";
-    theRows=[];//this resets the rows to be empty. New data rows will be added in each iteration of this loop.
+    theRows=[];//this resets the rows to be empty. New data rows will be added in each iteration of the below loop.
     List<String> wasused=[];//this represents a list of all string timestamps that have been added. This avoids repeats in the displayed data.
 
       int j=0;//j will be used as the indexing variable for new LINEAR MERGE
       //Linear merge to be used to help improve processing speed of this operation.
+
     for(int i=0;i<numEntries;i++) {//this traverses through the number of user entries.
       //print(allTime[i]);
 
-      //print(checklength);
-      //checklength++;
       double targTime=(((actfirstVal.millisecondsSinceEpoch))+(i*gapbetweenEntry));
       //this determines the targettime(in milliseconds since epoch, by obtaining the first time in seconds since epoch +(iterator value*gapBetweenEntry))
       //This value is rounded primarily in order to convert to int.
@@ -1738,18 +1641,24 @@ print("Hello");
         //timeStamps, allpH, and allLimeDisp were all previosuly made lists that contain ALL values from database.
         //This was chosen in replacement of a direct linear search(due to performance concerns)
         //This algorithm was done, bc it moves along with the target timestamps in time(instead of starting from beginning and searching for closest every time)
+
+
+        try{//an error occurs whenever the number of user inputted entries exceeds the number of entries that actually can be evenly spaced
         
         while(j<timeStamps.length && dateFormat.parse((timeStamps[j]).replaceAll(RegExp(r'\s+'), ' ')).millisecondsSinceEpoch<targTime) {
-          //continously increases j until it finds the first timestamp that is greater in value than the target time. the second thing after the && is the current timestamp value in millis
+          //continously increases j until it finds the first timestamp that is greater in value than the target time. 
+          //the second thing after the && is comparing the current timestamp value in ms to the target in ms
           j++;
-        }//the benefit behind doing this method, is that(assuming j!=0), doing this forces the fact that the closest time stamp MUST BE: 
+        }
+        
+        //the benefit behind doing this method, is that(assuming j!=0), doing this forces the fact that the closest time stamp MUST BE: 
         //timeStamps[j-1]: closest timestamp before computed time 
         //OR 
         //timeStamps[j]: closest timestamp AFTER computed time
         //This essentially finds the nearest neighbors extremely quickly each time
         
 
-        if(j==0) {//this is an edge case, if suprisnigly, the first timestamp from the database is actually the closest to the target Time Stamp.
+        if(j==0) {//this is an edge case, if suprisingly, the first timestamp from the database is actually the closest to the target Time Stamp.
           closestTime=timeStamps[j];//then the closest time, is in fact the first time in the database.
           pHfound=allpH[j];//sets proper pH value
           limedispfound=allLimeDisp[j];//sets proper j value.
@@ -1760,6 +1669,8 @@ print("Hello");
           //j: adjacent timestamp greater than target
           //j-1: adjacent timestamp less than target
           //whichever one is closer to the target, will be the one that will be used.
+          //If the value at index j-1 has been used before though, then it will be ignored..... This is done intentionally to avoid repeats.
+
           int currValMilli=(dateFormat.parse((timeStamps[j]).replaceAll(RegExp(r'\s+'), ' ')).millisecondsSinceEpoch);
           //the above int value represents the current timestamp's value in milliseconds
           //Note: this timestamp is adjacent to and AFTER OR EQUAL TO the computed target TimeStamp
@@ -1790,15 +1701,87 @@ print("Hello");
             limedispfound=allLimeDisp[j];
           }
         }
-        //j<timeStamps.length leads to repeats at the end, repeats should be avoided.....
-        //if(j<timeStamps.length-1) {//j should only be incremented so that it wont be equal to or greater than timestamps.length
-
-      
         j++;//to gurantee that time is moving forwards
         //Bc, all timestamps are in increasing order, repeats will not occur AND values of course will be increasing.
-        //}
+        
+      checklength++;//number of timestamps found that are closest to targetTime increases
+      
+      print(checklength);
+      print(closestTime);
+    }
+    
+    catch(e) {//an error is thrown whenever the number of user inputted entries exceeds the number of entries that can actually be evenly spaced
+    //To address this error, this section of code helps to fill in missing areas to ensure everything is complete.
+      //This will fill in gaps of any unused timestamps, to ensure full number of entries user desired is represented.
 
-    print(closestTime);
+
+
+      int k=0;//represents indexing through all possible timestamps
+      int z=0;//this iteration variable will be used for the wasused list(the list of used timestamps that are evenly spaced)
+      int unusedTime=0;//the number of unusedTimes found and added to wasused.
+      
+      while(k<timeStamps.length && wasused.length<numEntries) {//the timestamp's iteration variable can not exceed its length
+      //AND wasused.length(a dynamic parameter) can be at most the number of user inputted entries.
+        if(!wasused.contains(timeStamps[k])) {//finds unused timestamps.
+
+            //For the below while statement
+            //first parameter(string converted to standardized datetime format) is used time, while second parameter(string converted to standardized datetimeformat) is unused time.
+            
+            while(dateFormat.parse((wasused[z]).replaceAll(RegExp(r'\s+'), ' ')).isBefore(dateFormat.parse((timeStamps[k]).replaceAll(RegExp(r'\s+'), ' ')))) {
+            //This keeps on iterating until the used time is found is AFTER unused time.
+            //finding it right after is a good comparison method for later.....
+              z++;//this keeps adding the index until it finds a value that happens after the unused timestamp.
+            }
+
+            DateTime formattedusedTimeStamp=dateFormat.parse((wasused[z]).replaceAll(RegExp(r'\s+'), ' '));//used timestamp
+            DateTime formattedunusedTimeStamp=dateFormat.parse((timeStamps[k]).replaceAll(RegExp(r'\s+'), ' '));//unused timestamp
+            
+              if(z!=0) {//removes edge case of wasused being after times out of range. This ensures time must be in range
+              wasused.insert(z, timeStamps[k]);//inserts the unused value to the used value's index, and pushes the other indices to the right
+              unusedTime++;//adds number of unused times found.
+              }
+        }
+        k++;//keeps on searching through the timeStamps until the number of user inputted entries is hit.
+      }
+
+
+      print(wasused.length);//length of used timestamps list.
+      print(unusedTime);//number of unused times found(wasused.length-checklength should equal to this).
+
+
+      theRows=[];//sets the Rows list to empty bc wasused has been refreshed.
+      for(int y=0;y<wasused.length;y++) {//this is going to go through the entire was used list, and essentially transfer it over to the DataRows list.
+
+        setState(() {//setState is used here, to ensure that the changes of these rows will be reflected in the UI.
+      //it is used specifically here, as this is after the child has been traversed through.
+      
+
+      String valtoDisplay="";//this resets valtodisplay as empty string on each runtime.
+      if(displayVal()=="pH") {//this checks if the user choice is pH
+        valtoDisplay=allpH[timeStamps.indexOf(wasused[y])];//sets valtoDisplay to be pH. thePh and timestamps have the same indexes
+      }
+      if(displayVal()=="Lime Dispension Rate") {//this checks if the user choice is lime dispension.
+        valtoDisplay=allLimeDisp[timeStamps.indexOf(wasused[y])];//sets valtoDisplay to limedisp. thelimedisp and timestamps have same indexes.
+      }
+      
+      if(valtoDisplay!="") {//this check is used to ensure that only nonempty values are added to theRow. 
+      String newVal3=adjustStringval(valtoDisplay);//this adjusts the string value to ensure it is properly formatted.
+
+
+        theRows.add(DataRow(cells: [//this adds a row after going through that key-value pair
+          DataCell(Text(newVal3)),//prints the valtoDisplay value in the first column of the data table. Note this implementation works for pH/lime dispension. It evantually needs to be more generalized for flouride.
+          DataCell(Text(wasused[y])),//prints the associated date/time in the second column of the data table.
+        ]));
+        }
+
+
+      });
+      }
+
+      break;//the rest of the loop is not executed, as theRows is populated and finalized.
+    }
+    
+    
     
 
 
@@ -1932,21 +1915,14 @@ print("Hello");
       wasused.add(closestTime);//this adds the closest time to the list of used timestamps. This will be used in the next iteration as a basis of comparison.
 
 
-      //print(wasused.elementAt(i));
     }
 
-    //print(firstVal);
-    //print(lastVal);
-    //print(totalTimeGap);
 
   }
 
 
   
 
-  //if numEntries==amount, then it simply behaves as norma
-
-///}
 
   }
 
@@ -1954,20 +1930,33 @@ print("Hello");
 }
 
 
-
-//filteroutMS();//filters out milliseconds based on user input
   }
-//print(amount);
-
-//print(lastVal);
-//print(firstVal);
-
-
-  
-
-  //});
 
 }
+
+bool myControlBool=false;//this bool variable represents what is going to be sent to the database. It depends on the user input.
+void changeButtonStatus(bool flag) async {//this will be used to send a motor signal to the database.
+//async will be used to send values to database timely
+
+setState((){ //dynamically sets the state of myControlbool to flag(the user inputted switch state)
+    myControlBool=flag; 
+});
+
+String currTime=dateFormat.format((DateTime.now()));//this represents the time that the valve shutoff switch was pressed.
+DatabaseReference myDatabase2=FirebaseDatabase.instance.ref('data'); //This is an instance of the database.
+//Unlike the displaying of pH and lime dispension values, this will be read in(similar to fluoride). 
+//Also, unlike the pH and lime dispension values(which are added as seperate children), this will be updated as the last value.
+
+  await myDatabase2.update({ //this updates the values in .json format. 
+    "Valve Shutoff Status changed at ": currTime,//shows the time the value of the motor control was changed at.
+    "Valve Shutoff Status ": myControlBool.toString()//shows whether or not valves should be shut off. true means shutoff, false means not.
+  });
+}
+
+
+
+
+
 
 @override
 void dispose() {//destroys the current instance. This is done(similarly to the realtime graphs) to avoid any memory leaks.
@@ -1979,6 +1968,7 @@ void dispose() {//destroys the current instance. This is done(similarly to the r
   @override
   Widget build(BuildContext context) {//widget build line identical to home screen, except, there is no need for the super.context(), as it does not need to override this. This is because this class is purely used for toggling/switching between tabs, and instantitating tab labels.
   super.build(context); //this is used along side the above wantkeepalive to ensure the state is maintained when switching tabs.
+
   return Scaffold //this is used to show different layout options. This is going to be intended for use for the tabs.
   (
     //appBar: AppBar //this instantiates the AppBar on the top, this was originally in the homepage class, but now this will be here for organization purposes.
@@ -1999,7 +1989,7 @@ void dispose() {//destroys the current instance. This is done(similarly to the r
     Column(
       //crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[//this column is for the Flouride Input Field and its associated title
-      Padding(padding: EdgeInsets.only(left:40, top: 40, bottom: 10), child:Text("Enter your flouride value(ppm) here(be sure to press Enter): ",style: TextStyle(fontSize: 17, color: Colors.purple,),)),//this represents the title. Padding is placed to ensure that it is placed nicely into the UI
+      Padding(padding: EdgeInsets.only(left:40, top: 15, bottom: 10), child:Text("Enter your flouride value(ppm) here(be sure to press Enter): ",style: TextStyle(fontSize: 17, color: Colors.purple,),)),//this represents the title. Padding is placed to ensure that it is placed nicely into the UI
       SizedBox( //this box will be used to limit size of the text field
   width:230, //the textfield width is 230
   //child:Padding(padding: EdgeInsets.only(left:40,),//this inserts some padding from the left edge of the webapp for the textfield
@@ -2125,10 +2115,31 @@ void dispose() {//destroys the current instance. This is done(similarly to the r
           
 
       ),
+      Padding(padding: EdgeInsets.only(left:10, top: 0, bottom: 0, right: 0), child:Text("Valves are ${myControlBool? "off": "on"}. Would you like to turn the valves ${myControlBool? "on": "off"}?",style: TextStyle(fontSize: 17, color: Colors.purple),)),//emergency valve shutoff button label.
 
 
-      Text(errorMessage, style: TextStyle(color: Colors.red))//this represents the display of the error message.
+
+//This is new code for the emergency valve shutoff button. This button will be used to completely shut down the valves.
+//This is done by the valves reading a flag in the database, but the flag is originated in logic from this code.
+
+//This icon button is created for the valve control.
+IconButton(
+        //when the indicator variable is true, then the state we are in is off. 
+        //The button would prompt the user to be in the on state. Vice versa for other case.
+        icon: Icon(myControlBool ?  Icons.power_sharp : Icons.power_off_sharp), 
+        onPressed: () {
+          changeButtonStatus(!myControlBool);//since the switch has been clicked, the opposite value will be triggered.
+          //This essentially is toggling.
+        },
+        color: myControlBool ? Colors.green: Colors.red,//color of button is corresponded to button type.
+        iconSize: 45,//this is the size of that button
+        
+),
+
+      Text(errorMessage, style: TextStyle(color:Colors.red))//this represents the display of the error message.
       //more logic error messages will go here as needed
+      
+      
       ],
 
     ),
