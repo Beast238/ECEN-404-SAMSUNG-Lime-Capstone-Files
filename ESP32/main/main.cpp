@@ -140,17 +140,18 @@ int set_valve_duty_cycle_cmd(int argc, char **argv)
     }
 
     std::string dutyCycleStr = argv[2];
-    float dutyCycleFloat = std::stof(dutyCycleStr);
+    double dutyCycleFloat = std::stof(dutyCycleStr);
+    dutyCycleFloat /= 100;
 
     std::string typ = argv[1];
     if (typ == "1" || typ == "lime")
     {
-        I2C_Driver::set_duty_cycle_1(dutyCycleFloat / 100);
+        I2C_Driver::set_duty_cycle_1(dutyCycleFloat);
         printf("set_duty_cycle_1 %f\n", dutyCycleFloat);
     }
     else if (typ == "2" || typ == "water")
     {
-        I2C_Driver::set_duty_cycle_2(dutyCycleFloat / 100);
+        I2C_Driver::set_duty_cycle_2(dutyCycleFloat);
         printf("set_duty_cycle_2 %f\n", dutyCycleFloat);
     }
 

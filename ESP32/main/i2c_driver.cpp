@@ -15,7 +15,7 @@ volatile double I2C_Driver::duty_cycle_2 = 0;
 void I2C_Driver::set_lime_rate(double targetRate) // rate in mL/s
 {
     // characterized duty cycle to flow rate data points
-    double FLOW_RATE_POINTS[] = {0, 0.8333, 2, 3.541667, 5, 6, 6.66667, 8.3333, 8.83333, 10.25, 11.3333};
+    double FLOW_RATE_POINTS[] = {0, 0.8333333, 2, 3.54166667, 5, 6, 6.6666667, 8.3333333, 8.8333333, 10.25, 11.333333};
     double DUTY_CYCLE_POINTS[] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
     int NUM_DATA_POINTS = sizeof(DUTY_CYCLE_POINTS) / sizeof(*DUTY_CYCLE_POINTS); // 11
 
@@ -33,10 +33,18 @@ void I2C_Driver::set_lime_rate(double targetRate) // rate in mL/s
     }
 
     targetDutyCycle = targetDutyCycle / 100.0f;
-    if (targetDutyCycle < 0 || targetDutyCycle > 1)
+    if (targetDutyCycle < 0.0f || targetDutyCycle > 1.0f)
     {
-        printf("Failed to find appropriate duty cycle for requested flow rate %f mL/s\n", targetRate);
-        targetDutyCycle = 0;
+        if (targetRate < FLOW_RATE_POINTS[0])
+        {
+            printf("Warning: clamping duty cycle to 0%% for target rate of %f mL/s (min %f mL/s)\n", targetRate, FLOW_RATE_POINTS[0]);
+            targetDutyCycle = 0.0f;
+        }
+        else if (targetRate > FLOW_RATE_POINTS[NUM_DATA_POINTS - 1])
+        {
+            printf("Warning: clamping duty cycle to 100%% for target rate of %f mL/s (max %f mL/s)\n", targetRate, FLOW_RATE_POINTS[NUM_DATA_POINTS - 1]);
+            targetDutyCycle = 1.0f;
+        }
     }
     I2C_Driver::set_duty_cycle_1(targetDutyCycle);
 }
