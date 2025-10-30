@@ -314,6 +314,142 @@ return Flouride;
 
 }
 
+//This function is made very similar to returnFlouride
+//Some of the differences, such as size of what is read, etc. will be highlighted where necessary
+//This interfaces the ESP to changes in the motor control flag.
+char* returnFlag() {//returns read in valve shutoff value
+    //Something to keep in mind is that the quotations surrounding the number WILL be included. 
+    //thus, bc the maximum characters allowed for the valve shutoff is 5, and the quotations are two characters, 
+    //the maximumum amount of bytes possibly read in from database is 8(including null terminator).
+    
+
+//The folllowing chosen configuration specs were researched from the espidf function list in the https client page
+//These were selected due to their needed context in this operation.
+
+
+
+
+esp_http_client_config_t myCfg3 = {//this sets the configuration/settings of the Read request. 
+    //This is the most basic requirement before initializing the client.
+
+
+    //There are a couple of parameters of interest that will be highlighted here.
+
+
+    .url="https://databaseecen403-6fb45-default-rtdb.firebaseio.com/data/Valve%20Shutoff%20Status%20.json"
+    
+    //as seen above url is the link to the vale status in the database.
+    //true means valves should be shutoff, false means the valves should remain in current operation.
+    //the above link is where the specific value is receieved. %20 is spaces between each word.
+
+
+
+
+    ,.method=HTTP_METHOD_GET, //this is the method type for the get request. 
+    //This code is going to simply obtain the value for Valve Shutoff FROM THE DATABASE.
+    
+    .transport_type=HTTP_TRANSPORT_OVER_TCP, //the transport type(from database to espidf) will be TCP
+    //This is because TCP was the previously used network interface(LWIP), as described in the Wifi code.
+    //Even though this is TCP communication, it will still have TLS(Transport layer Security) when sending.
+    //This provides encryption and safe sending of data over internet.
+    //To ensure this, espidf has an onboard bundle which can be attached and used.
+    //It allows for different certificates to be used.
+
+    
+    .use_global_ca_store=true//this is used here to essentially allow all certificates from the below bundle
+    
+    
+
+    
+    
+    //The good news is, is that the certificate for Firebase is included. 
+    ,.crt_bundle_attach=esp_crt_bundle_attach,//This represents the default bundle from ESPIDF, and it includes the certificate for Firebase Projects.
+    .keep_alive_enable = true//ensures that when a timeout occurs, an automatic retry is done to regain connection.
+    
+
+
+};
+
+
+
+esp_http_client_handle_t myVar3 = esp_http_client_init(&myCfg3);//this starts a new receieving session. 
+//It returns a variable(myVar) of type client_handle(this represents the newly made client)
+//This initalizes the client(that has the previously made settings)to be used with the database.
+
+
+static char myFlag[9];//this variable represents the shutoff status value being inputted in from the database. 
+//static is being used here, to ensure this variable will be the same, when it is being accessed again in app_main
+//Size 9 is used here, just to GURANTEE that this buffer is larger than the length of what is being read in from the database.
+//This accounts for the maximum possible situation(8 bytes)
+//Even though it is size 8, something to keep in mind is that the LAST INDEX is is the null terminator /0.
+//Thus, it truly is 7 bytes.
+
+
+
+
+
+esp_err_t status = esp_http_client_open(myVar3, 0);//0 is used here, as nothing is actually written to the dataabase itself.
+//opens connection to the database with the previously made client.
+
+
+//It is important to note that because the return type is an error, this will be used
+//to essentially detect whether or not the operation went through AFTER it was attempted.
+//This is analgous to the ESP_ERROR_CHECKS_WITHOUT_ABORT in the part for the Wifi Code.
+
+
+int myFetch=esp_http_client_fetch_headers(myVar3);//this is done to later distinguish headers(Valve Shutoff Status) from body for this variable.
+//allows for the body to be read in seperately with the read command.
+
+if(status==ESP_OK) {//checks to make sure attempt to open connection is successful.
+    //It is important to check this, just in case if something does go wrong.....
+    
+    //number of bytes read in from the database includes the bool status value,two surrounding double quotes, and a null terminator at the end.
+    //As stated above, this means that the maximum amount of bytes read from the database is 8
+
+
+    int myFlaglength=esp_http_client_read(myVar3, myFlag, sizeof(myFlag)-1);//this is assuming: that the maximum 
+    //reads in bytes from database which includes: double quotes, flag, and null terminator at the end.
+    //This is why -1 is used here as there is no need for having 9 bytes(8 is the maximum).
+
+    //there are 3 parameters here: the created client, the cstring variable myFlag, and then the length of myFlag.
+    //BECAUSE this is a cstring, it is important to note that the last character is null terminated.
+
+
+    //the following code section is done to resolve an edge case when increasing/decreasing the length of the flag variable.
+    //This issue arised due to the fact of the buffer possibly being greater than the actual length read in the database.
+    //This code segment ensures that the null terminator occurs AFTER the second quotation mark, ensuring only necessary values are being displayed.
+    int indofSecondQuote=0;//this represents the final index to be included in the print: the second double quote.
+    
+    for(int j=0;j<sizeof(myFlag)-1;j++) {//this goes through the size of the flag status(maximum 8 bytes including null terminator)
+        if(myFlag[j]=='\"' && j!=0) {//if the value at the index is a quotation mark(but it is NOT the first quotation mark)
+            indofSecondQuote=j;//save this index as a variable, and exit out of loop.
+            break;//breaks out of the loop to save time.
+        }
+    }
+
+
+    myFlag[indofSecondQuote+1]='\0';//the index AFTER the saved index will be the null terminator, 
+    //as NOTHING should be read in after the second double quote.
+    
+if (ENABLE_DEBUG_LOGGING) printf("HTTP: Read returned %d bytes(valve control)\n", myFlaglength);//returns length of what is returned(NOTE: quotations will be returned as well.)
+}
+
+
+
+esp_http_client_close(myVar3);//this finally closes(opposite of open) the client AFTER the operation is completed
+
+esp_http_client_cleanup(myVar3);//this finally cleans up the client AFTER the operation is completed
+//cleanup helps to avoid any memory issues that could occur..
+
+//An interesting aspect to consider is that the approach had to be changed to ensure this value could be returned.
+//instead of doing init->perform->readresponse->cleanup, this was done as init->open->read->close->cleanup
+//The student had some issues doing it the first way, bc perform would read all the data before readresponse would be able to use it...
+
+//Important thing now, is that it works as it should.
+return myFlag;
+
+
+}
 
 
 
@@ -368,7 +504,7 @@ static void my_Event_Handler(void* myArg, esp_event_base_t theBase, int32_t theI
         ip_event_got_ip_t* myEvent = (ip_event_got_ip_t*) theData;//this holds the value of the incoming event's IP address. This makes sense, as theData is in a raw format, and it needs to be converted into ip address formatted data
         //got_ip_t is used here, as that is the data type for receiving IP EVENTS.
         if (ENABLE_DEBUG_LOGGING) printf("Wifi Connection Status: got ip address: " IPSTR "\n", IP2STR(&myEvent->ip_info.ip));//this prints the message to the terminal. ip info just represents information found in the previously converted event. .ip is used on this, to specifically obtain the addresss.
-        //IPSTR is used to format the Ip Address being found after the second comma
+        //IPSTR is used to format the Ip Address being found after the second comma into a string.
         
         //IP2STR simply breaks the address into different numbers(in this case, 4 numbers for the IP address) for sake of formatting.
 
@@ -414,7 +550,7 @@ int wifi_init_phase(void) {//this function is the initalization phase of the pro
     //Note that this is crucial to communicate with iOT Devices(in this case/context, ESP32).
 
     esp_err_t status = esp_event_loop_create_default(); //If there is no error then, the event task(loop) will be initialized. As stated above, this is the second step in the connection portion.
-    if (status != ESP_OK)//if there is an error, then a retry attempt will be done to essentially reconnect.
+    if (status != ESP_OK)
     {
         vTaskDelay(pdMS_TO_TICKS(5000));
         return 1;
@@ -793,12 +929,14 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
             
         //setProperESP32Time(currTime); //this is going to set the system time appropiately. 
 
+        printf(returnFlag());//true means valves are off, false means valves are on. this is a cstring value which doesn't necessarily needed to be changed to other type, as this will be used in conditionals.
 
         sendTimeLimeDispandpH(mypHVal, myVal2);//sends pH and lime dispension value to the database.
         //The timestamp will be implicitly sent, using the adjustString() function made in ECEN 403.
 
 
         
+
 
 
         
@@ -819,4 +957,3 @@ void database_app_main_loop()
     }
     vTaskDelete(NULL);
 }
-
