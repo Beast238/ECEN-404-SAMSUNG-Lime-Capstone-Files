@@ -13,6 +13,8 @@ volatile double I2C_Driver::duty_cycle_2 = 0;
 volatile bool I2C_Driver::force_valves_off = true; // don't let valves turn on until we get the all clear from the database
 
 // called in model.cpp
+// valid from 0 gal dispersed to 0.75 gal dispersed
+// best with duty cycles from 30% to 99.6%
 void I2C_Driver::set_lime_rate(double targetRate) // rate in mL/s
 {
     // characterized duty cycle to flow rate data points
