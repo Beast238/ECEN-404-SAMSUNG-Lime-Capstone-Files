@@ -139,6 +139,8 @@ int set_valve_duty_cycle_cmd(int argc, char **argv)
         return 1;
     }
 
+    I2C_Driver::set_force_valves_off(false); // allow valves to turn on
+
     std::string dutyCycleStr = argv[2];
     double dutyCycleFloat = std::stof(dutyCycleStr);
     dutyCycleFloat /= 100;
@@ -166,6 +168,8 @@ int set_lime_rate_cmd(int argc, char **argv)
         // set_lime_rate <targetRate in mL/s>
         return 1;
     }
+
+    I2C_Driver::set_force_valves_off(false); // allow valves to turn on
 
     std::string rateStr = argv[1];
     float rateFloat = std::stof(rateStr);

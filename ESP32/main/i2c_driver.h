@@ -10,6 +10,7 @@
 #include "freertos/task.h"
 #include "esp_system.h"
 #include "driver/i2c_master.h"
+#include "custom_globals.h"
 
 #define I2C_MASTER_SCL_IO    22    /*!< gpio number for I2C master clock */
 #define I2C_MASTER_SDA_IO    21    /*!< gpio number for I2C master data  */
@@ -31,11 +32,13 @@ class I2C_Driver
         // to be used externally
         static volatile double duty_cycle_1;
         static volatile double duty_cycle_2;
+        static volatile bool force_valves_off;
 
         static void set_lime_rate(double rate);
         static void set_wastewater_rate();
         static void set_duty_cycle_1(double dc);
         static void set_duty_cycle_2(double dc);
+        static void set_force_valves_off(bool flag);
         static void i2c_init();
         static void i2c_deinit();
 };

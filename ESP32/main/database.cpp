@@ -7,11 +7,13 @@
 //WIFICONNECTION CODE:
 #include "model.h"
 #include "pH_driver.h"
+#include "i2c_driver.h"
 #include <iostream>//included for couts.
 #include <stdio.h>
 #include <stdlib.h>//used for double conversions.
 #include <sys/time.h>//header for esp system time setting
 #include <time.h>//system header.
+#include <string.h>
 #include "custom_globals.h"
 
 //the following three delcarations are related to the FreeRTOS library.
@@ -929,7 +931,10 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
             
         //setProperESP32Time(currTime); //this is going to set the system time appropiately. 
 
-        printf(returnFlag());//true means valves are off, false means valves are on. this is a cstring value which doesn't necessarily needed to be changed to other type, as this will be used in conditionals.
+        //true means valves are off, false means valves are on. this is a cstring value which doesn't necessarily needed to be changed to other type, as this will be used in conditionals.
+        char* flag = returnFlag();
+        bool flagBool = (strcmp(flag, "\"false\"") == 0) ? false : true; // dead man's switch; only turn on valves if we receive "false" exactly as expected
+        I2C_Driver::set_force_valves_off(flagBool);
 
         sendTimeLimeDispandpH(mypHVal, myVal2);//sends pH and lime dispension value to the database.
         //The timestamp will be implicitly sent, using the adjustString() function made in ECEN 403.
