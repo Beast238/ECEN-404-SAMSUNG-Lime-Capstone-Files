@@ -933,6 +933,7 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
 
         //true means valves are off, false means valves are on. this is a cstring value which doesn't necessarily needed to be changed to other type, as this will be used in conditionals.
         char* flag = returnFlag();
+        //printf("%s\n", flag);
         bool flagBool = (strcmp(flag, "\"false\"") == 0) ? false : true; // dead man's switch; only turn on valves if we receive "false" exactly as expected
         I2C_Driver::set_force_valves_off(flagBool);
 

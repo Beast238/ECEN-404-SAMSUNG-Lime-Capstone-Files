@@ -55,8 +55,7 @@ void I2C_Driver::set_lime_rate(double targetRate) // rate in mL/s
 // called in I2C_Driver::i2c_loop
 void I2C_Driver::set_wastewater_rate()
 {
-    I2C_Driver::set_duty_cycle_2(0.6); // fixed 60% (estimated 10m22s to drain 1 gal); change as needed
-}
+    I2C_Driver::duty_cycle_2 = 1.0f; // fixed 100%; TODO ryon needs to update model
 
 void I2C_Driver::set_duty_cycle_1(double dc) { I2C_Driver::duty_cycle_1 = dc; }
 void I2C_Driver::set_duty_cycle_2(double dc) { I2C_Driver::duty_cycle_2 = dc; }
@@ -80,7 +79,7 @@ void I2C_Driver::i2c_write_byte(i2c_master_dev_handle_t handl, uint8_t dat)
     uint8_t* write_buf = (uint8_t*)malloc(sizeof(uint8_t) * 2);
     write_buf[0] = 0x00; // reg addr
     write_buf[1] = dat;
-    esp_err_t err = i2c_master_transmit(handl, write_buf, 2, -1);
+    esp_err_t err = i2c_master_transmit(handl, write_buf, 2, 1000);
     free(write_buf);
 
     if (err != ESP_OK)
@@ -98,7 +97,7 @@ uint8_t I2C_Driver::i2c_read_byte(i2c_master_dev_handle_t handl)
     }
     uint8_t* read_buf = (uint8_t*)malloc(sizeof(uint8_t));
 
-    esp_err_t err = i2c_master_receive(handl, read_buf, 1, -1);
+    esp_err_t err = i2c_master_receive(handl, read_buf, 1, 1000);
     if (err != ESP_OK)
     {
         printf("Error during i2c read: %d\n", err);
@@ -138,6 +137,7 @@ double I2C_Driver::i2c_set_duty_cycle(double dc)
 
 void I2C_Driver::i2c_loop()
 {
+    if (ENABLE_DEBUG_LOGGING) printf("i2c loop start\n");
     while (true)
     {
         if (!I2C_Driver::i2c_ready) break;
@@ -145,21 +145,30 @@ void I2C_Driver::i2c_loop()
         I2C_Driver::set_wastewater_rate(); // fixed so just call here
 
         // if force valves off, override duty cycles to zero
-        if (I2C_Driver::force_valves_off)
+        /*if (I2C_Driver::force_valves_off)
         {
-            I2C_Driver::set_duty_cycle_1(0.0f);
-            I2C_Driver::set_duty_cycle_2(0.0f);
+            if (ENABLE_DEBUG_LOGGING) printf("Forcing valves off\n");
         }
+        else
+        {
+            if (ENABLE_DEBUG_LOGGING) printf("Not forcing valves off\n");
+        }*/
 
-        I2C_Driver::i2c_select_valve(1); // write 0x00 0x01 to 0x70 and read back
-        I2C_Driver::i2c_set_duty_cycle(I2C_Driver::duty_cycle_1); // write 0x00 0xXX to 0x48 and read back
+        if (ENABLE_VALVE_TWO) I2C_Driver::i2c_select_valve(1); // write 0x00 0x01 to 0x70 and read back
+        I2C_Driver::i2c_set_duty_cycle(I2C_Driver::force_valves_off ? 0.0f : I2C_Driver::duty_cycle_1); // write 0x00 0xXX to 0x48 and read back
+        //if (ENABLE_DEBUG_LOGGING) printf("dc 1: %f\n", I2C_Driver::duty_cycle_1);
 
-        I2C_Driver::i2c_select_valve(2); // write 0x00 0x01 to 0x70 and read back
-        I2C_Driver::i2c_set_duty_cycle(I2C_Driver::duty_cycle_2); // write 0x00 0xXX to 0x48 and read back
+        if (ENABLE_VALVE_TWO)
+        {
+            I2C_Driver::i2c_select_valve(2); // write 0x00 0x01 to 0x70 and read back
+            I2C_Driver::i2c_set_duty_cycle(I2C_Driver::force_valves_off ? 0.0f : I2C_Driver::duty_cycle_2); // write 0x00 0xXX to 0x48 and read back
+            //if (ENABLE_DEBUG_LOGGING) printf("dc 2: %f\n", I2C_Driver::duty_cycle_2);
+        }
 
         vTaskDelay(100 / portTICK_PERIOD_MS); // execute approximately 10 times a second
     }
     
+    printf("i2c loop end\n");
     i2c_master_bus_rm_device(I2C_Driver::valve_select_handle);
     i2c_master_bus_rm_device(I2C_Driver::duty_cycle_select_handle);
     i2c_del_master_bus(I2C_Driver::bus_handle);
@@ -220,7 +229,7 @@ void I2C_Driver::i2c_init()
     I2C_Driver::i2c_ready = 1;
 
     // init loop task
-    xTaskCreate((TaskFunction_t)(I2C_Driver::i2c_loop), "i2c_loop", 4096, NULL, 2, NULL);
+    xTaskCreate((TaskFunction_t)(I2C_Driver::i2c_loop), "i2c_loop", 4096, NULL, 3, NULL);
 }
 
 void I2C_Driver::i2c_deinit()
