@@ -10,6 +10,7 @@
 #include "esp_flash.h"
 #include "esp_system.h"
 #include "esp_console.h"
+#include "esp_mac.h"
 #include "i2c_driver.h"
 
 #include <stdio.h> 
@@ -24,6 +25,13 @@
 #include "pH_driver.h"
 #include "model.h"
 #include "custom_globals.h"
+
+// following method is taken from https://esp32.com/viewtopic.php?t=21310
+static void print_mac(const unsigned char *mac)
+{
+	printf("%02X:%02X:%02X:%02X:%02X:%02X", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+}
+// above is not Texas A&M property
 
 static void print_info()
 {
@@ -55,6 +63,22 @@ static void print_info()
            (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
 
     printf("Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
+
+    // following 12 lines are taken from https://esp32.com/viewtopic.php?t=21310
+    unsigned char mac_base[6] = {0};
+    esp_efuse_mac_get_default(mac_base);
+    esp_read_mac(mac_base, ESP_MAC_WIFI_STA);
+    unsigned char mac_local_base[6] = {0};
+    unsigned char mac_uni_base[6] = {0};
+    esp_derive_local_mac(mac_local_base, mac_uni_base);
+    printf("Local Address: ");
+    print_mac(mac_local_base); 
+    printf("\nUni Address: ");
+    print_mac(mac_uni_base);
+    printf("\nMAC Address: ");
+    print_mac(mac_base);
+    printf("\n");
+    // above is not Texas A&M property
 }
 
 static int print_info_params(int argc, char **argv) { print_info(); return 0; }
@@ -200,7 +224,7 @@ void init_console()
 
     // register commands
     const esp_console_cmd_t cmd1 = {
-        .command = "print_info",
+        .command = "info",
         .help = "Print chip information",
         .hint = NULL,
         .func = &print_info_params,
