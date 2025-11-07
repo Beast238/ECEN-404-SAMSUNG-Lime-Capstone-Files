@@ -56,6 +56,7 @@ void I2C_Driver::set_lime_rate(double targetRate) // rate in mL/s
 void I2C_Driver::set_wastewater_rate()
 {
     I2C_Driver::duty_cycle_2 = 1.0f; // fixed 100%; TODO ryon needs to update model
+}
 
 void I2C_Driver::set_duty_cycle_1(double dc) { I2C_Driver::duty_cycle_1 = dc; }
 void I2C_Driver::set_duty_cycle_2(double dc) { I2C_Driver::duty_cycle_2 = dc; }
@@ -142,27 +143,18 @@ void I2C_Driver::i2c_loop()
     {
         if (!I2C_Driver::i2c_ready) break;
 
-        I2C_Driver::set_wastewater_rate(); // fixed so just call here
+        if (!DEBUG_MODE) I2C_Driver::set_wastewater_rate(); // fixed so just call here
 
-        // if force valves off, override duty cycles to zero
-        /*if (I2C_Driver::force_valves_off)
-        {
-            if (ENABLE_DEBUG_LOGGING) printf("Forcing valves off\n");
-        }
-        else
-        {
-            if (ENABLE_DEBUG_LOGGING) printf("Not forcing valves off\n");
-        }*/
-
+        //printf("setting valve to 1\n");
         if (ENABLE_VALVE_TWO) I2C_Driver::i2c_select_valve(1); // write 0x00 0x01 to 0x70 and read back
+        //printf("setting dc of 1\n");
         I2C_Driver::i2c_set_duty_cycle(I2C_Driver::force_valves_off ? 0.0f : I2C_Driver::duty_cycle_1); // write 0x00 0xXX to 0x48 and read back
         //if (ENABLE_DEBUG_LOGGING) printf("dc 1: %f\n", I2C_Driver::duty_cycle_1);
 
         if (ENABLE_VALVE_TWO)
-        {
-            I2C_Driver::i2c_select_valve(2); // write 0x00 0x01 to 0x70 and read back
+        {        
+            I2C_Driver::i2c_select_valve(8); // write 0x00 0x08 (ch3) to 0x70 and read back. currently hardware present is issue with ch1 (0x02) so currently using ch0 for valve 1 and ch3 for valve 2
             I2C_Driver::i2c_set_duty_cycle(I2C_Driver::force_valves_off ? 0.0f : I2C_Driver::duty_cycle_2); // write 0x00 0xXX to 0x48 and read back
-            //if (ENABLE_DEBUG_LOGGING) printf("dc 2: %f\n", I2C_Driver::duty_cycle_2);
         }
 
         vTaskDelay(100 / portTICK_PERIOD_MS); // execute approximately 10 times a second
