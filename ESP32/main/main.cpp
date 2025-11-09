@@ -35,7 +35,7 @@ static void print_mac(const unsigned char *mac)
 
 static void print_info()
 {
-    printf("Hello world! This is the Samsung Lime Treatment system, on the ESP32 MCU.\n");
+    printf("\n\nHello world! This is the Samsung Lime Treatment system, on the ESP32 MCU.\n");
 
     // https://github.com/espressif/esp-idf/blob/v5.5.1/LICENSE
     
@@ -236,6 +236,19 @@ int log_debug_cmd(int argc, char **argv)
     return 0;
 }
 
+int status_cmd(int argc, char **argv)
+{
+    printf("SYSTEM STATUS:\n");
+    printf("Current pH: %f\n", currentpH);
+    printf("Current fluoride: %f ppm\n\n", g_fluoride_ppm);
+    printf("Target lime rate: %f mL/s\n\n", I2C_Driver::target_lime_rate_read_only);
+    printf("Lime valve duty cycle: %f%%\n", I2C_Driver::duty_cycle_1 * 100.0f);
+    printf("Wastewater valve duty cycle: %f%%\n", I2C_Driver::duty_cycle_2 * 100.0f);
+    printf("Valve shut-off switch: %s\n", (I2C_Driver::force_valves_off ? "ON" : "OFF"));
+
+    return 0;
+}
+
 int reboot_cmd(int argc, char **argv)
 {
     fflush(stdout);
@@ -311,6 +324,13 @@ void init_console()
         .func = &log_debug_cmd,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd8));
+    const esp_console_cmd_t cmd9 = {
+        .command = "status",
+        .help = "Print status",
+        .hint = NULL,
+        .func = &status_cmd,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd9));
 }
 
 extern "C" void app_main(void)

@@ -8,6 +8,7 @@ volatile bool I2C_Driver::i2c_ready = 0;
 i2c_master_bus_handle_t I2C_Driver::bus_handle;
 i2c_master_dev_handle_t I2C_Driver::valve_select_handle;
 i2c_master_dev_handle_t I2C_Driver::duty_cycle_select_handle;
+volatile double I2C_Driver::target_lime_rate_read_only = 0;
 volatile double I2C_Driver::duty_cycle_1 = 0;
 volatile double I2C_Driver::duty_cycle_2 = 0;
 volatile bool I2C_Driver::force_valves_off = true; // don't let valves turn on until we get the all clear from the database
@@ -17,6 +18,8 @@ volatile bool I2C_Driver::force_valves_off = true; // don't let valves turn on u
 // best with duty cycles from 30% to 99.6%
 void I2C_Driver::set_lime_rate(double targetRate) // rate in mL/s
 {
+    I2C_Driver::target_lime_rate_read_only = targetRate;
+    
     // characterized duty cycle to flow rate data points
     double FLOW_RATE_POINTS[] = {0, 0.8333333, 2, 3.54166667, 5, 6, 6.6666667, 8.3333333, 8.8333333, 10.25, 11.333333};
     double DUTY_CYCLE_POINTS[] = {0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100};

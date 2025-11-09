@@ -30,6 +30,7 @@ class I2C_Driver
         static void i2c_loop();
 
         // to be used externally
+        static volatile double target_lime_rate_read_only;
         static volatile double duty_cycle_1;
         static volatile double duty_cycle_2;
         static volatile bool force_valves_off;
