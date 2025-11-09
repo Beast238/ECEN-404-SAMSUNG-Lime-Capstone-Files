@@ -204,6 +204,38 @@ int set_lime_rate_cmd(int argc, char **argv)
     return 0;
 }
 
+int set_wastewater_rate_cmd(int argc, char **argv)
+{
+    if (argc != 2)
+    {
+        printf("set_wastewater_rate expects one parameter\n");
+        // set_wastewater_rate <dc in %>
+        return 1;
+    }
+
+    I2C_Driver::set_force_valves_off(false); // allow valves to turn on
+
+    std::string rateStr = argv[1];
+    float rateFloat = std::stof(rateStr);
+
+    I2C_Driver::set_wastewater_rate(rateFloat);
+
+    printf("set_duty_cycle_2 %f\n", I2C_Driver::duty_cycle_2);
+    return 0;
+}
+
+int log_info_cmd(int argc, char **argv)
+{
+    ENABLE_INFO_LOGGING = !ENABLE_INFO_LOGGING;
+    return 0;
+}
+
+int log_debug_cmd(int argc, char **argv)
+{
+    ENABLE_DEBUG_LOGGING = !ENABLE_DEBUG_LOGGING;
+    return 0;
+}
+
 int reboot_cmd(int argc, char **argv)
 {
     fflush(stdout);
@@ -252,12 +284,33 @@ void init_console()
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd4));
     const esp_console_cmd_t cmd5 = {
+        .command = "set_wastewater_rate",
+        .help = "Execute I2C_Driver::set_wastewater_rate (set_wastewater_rate <duty cycle %>>), syncs with model",
+        .hint = NULL,
+        .func = &set_wastewater_rate_cmd,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd5));
+    const esp_console_cmd_t cmd6 = {
         .command = "reboot",
         .help = "Reboot the microcontroller immediately",
         .hint = NULL,
         .func = &reboot_cmd,
     };
-    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd5));
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd6));
+    const esp_console_cmd_t cmd7 = {
+        .command = "log_info",
+        .help = "Toggle ENABLE_INFO_LOGGING",
+        .hint = NULL,
+        .func = &log_info_cmd,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd7));
+    const esp_console_cmd_t cmd8 = {
+        .command = "log_debug",
+        .help = "Toggle ENABLE_DEBUG_LOGGING",
+        .hint = NULL,
+        .func = &log_debug_cmd,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd8));
 }
 
 extern "C" void app_main(void)
@@ -270,6 +323,7 @@ extern "C" void app_main(void)
     }
     else
     {
+        init_console();
         init_all();
         print_info();
     }

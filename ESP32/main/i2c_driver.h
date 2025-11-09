@@ -35,7 +35,7 @@ class I2C_Driver
         static volatile bool force_valves_off;
 
         static void set_lime_rate(double rate);
-        static void set_wastewater_rate();
+        static void set_wastewater_rate(double dc); // same as set_duty_cycle_2 
         static void set_duty_cycle_1(double dc);
         static void set_duty_cycle_2(double dc);
         static void set_force_valves_off(bool flag);

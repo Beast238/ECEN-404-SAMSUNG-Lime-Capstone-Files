@@ -52,10 +52,10 @@ void I2C_Driver::set_lime_rate(double targetRate) // rate in mL/s
     I2C_Driver::set_duty_cycle_1(targetDutyCycle);
 }
 
-// called in I2C_Driver::i2c_loop
-void I2C_Driver::set_wastewater_rate()
+// same as set_duty_cycle_2
+void I2C_Driver::set_wastewater_rate(double dc)
 {
-    I2C_Driver::duty_cycle_2 = 1.0f; // fixed 100%; TODO ryon needs to update model
+    I2C_Driver::set_duty_cycle_2(dc);
 }
 
 void I2C_Driver::set_duty_cycle_1(double dc) { I2C_Driver::duty_cycle_1 = dc; }
@@ -139,12 +139,14 @@ double I2C_Driver::i2c_set_duty_cycle(double dc)
 void I2C_Driver::i2c_loop()
 {
     if (ENABLE_DEBUG_LOGGING) printf("i2c loop start\n");
+
+    // default 1.0f
+    I2C_Driver::set_wastewater_rate(1.0f);
+
     while (true)
     {
         if (!I2C_Driver::i2c_ready) break;
-
-        if (!DEBUG_MODE) I2C_Driver::set_wastewater_rate(); // fixed so just call here
-
+        
         //printf("setting valve to 1\n");
         if (ENABLE_VALVE_TWO) I2C_Driver::i2c_select_valve(1); // write 0x00 0x01 to 0x70 and read back
         //printf("setting dc of 1\n");
