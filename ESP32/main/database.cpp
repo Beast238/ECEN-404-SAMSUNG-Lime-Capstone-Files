@@ -91,7 +91,8 @@
 #include "esp_task_wdt.h"//represents wdt task
 
 
-bool gotIp=false;//indicator to check if IP Address was officially obtained.
+volatile bool g_got_IP = false;//indicator to check if IP Address was officially obtained.
+char* g_current_IP = nullptr;
 
 //These functions are taken from c++ program made in 403. They are EXACTLY the same.
 std::string getCurrentTime() {//returns the currenttime in terms of a string
@@ -505,12 +506,16 @@ static void my_Event_Handler(void* myArg, esp_event_base_t theBase, int32_t theI
         //the actual datatype of the IP address is ip_event_got_ip_t. Thus, we need to make a temporary variable that holds this value
         ip_event_got_ip_t* myEvent = (ip_event_got_ip_t*) theData;//this holds the value of the incoming event's IP address. This makes sense, as theData is in a raw format, and it needs to be converted into ip address formatted data
         //got_ip_t is used here, as that is the data type for receiving IP EVENTS.
-        if (ENABLE_DEBUG_LOGGING) printf("Wifi Connection Status: got ip address: " IPSTR "\n", IP2STR(&myEvent->ip_info.ip));//this prints the message to the terminal. ip info just represents information found in the previously converted event. .ip is used on this, to specifically obtain the addresss.
+        if (g_current_IP != nullptr) free(g_current_IP);
+        g_current_IP = (char*)(malloc(256)); // max len of an IP addr str is 15 chars
+        esp_ip4addr_ntoa(&myEvent->ip_info.ip, g_current_IP, sizeof(g_current_IP));
+        if (ENABLE_DEBUG_LOGGING) printf("Wifi Connection Status: got ip address: %s\n", g_current_IP);//this prints the message to the terminal. ip info just represents information found in the previously converted event. .ip is used on this, to specifically obtain the addresss.
         //IPSTR is used to format the Ip Address being found after the second comma into a string.
         
+
         //IP2STR simply breaks the address into different numbers(in this case, 4 numbers for the IP address) for sake of formatting.
 
-       //gotIp=true;
+       //g_got_IP=true;
        //vTaskDelay(pdMS_TO_TICKS(4000));
        //printf(returnFlouride());
 
@@ -519,7 +524,7 @@ static void my_Event_Handler(void* myArg, esp_event_base_t theBase, int32_t theI
        //printf(returnFlouride());//this HAS to be called at this stage. Communication/sending and receiving requests can ONLY be done
        //after IP Address is obtained. This is something important to consider.
 
-       gotIp=true;//sets gotIP Address to true, as the ip address was obtained....
+       g_got_IP=true;//sets g_got_IP Address to true, as the ip address was obtained....
     }
 }
 
@@ -889,7 +894,7 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
 
 
         
-        if(gotIp){//requests are ONLY SENT OR RECEIEVED if Ip Address is obtained. 
+        if(g_got_IP){//requests are ONLY SENT OR RECEIEVED if Ip Address is obtained. 
         //This is bc stable wifi connection(which means obtained ip address), is required for successful sends/receive to/from database.
             
             //For overall flow order:

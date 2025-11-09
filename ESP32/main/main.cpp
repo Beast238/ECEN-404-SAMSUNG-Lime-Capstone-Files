@@ -71,10 +71,10 @@ static void print_info()
     unsigned char mac_local_base[6] = {0};
     unsigned char mac_uni_base[6] = {0};
     esp_derive_local_mac(mac_local_base, mac_uni_base);
-    printf("Local Address: ");
-    print_mac(mac_local_base); 
-    printf("\nUni Address: ");
-    print_mac(mac_uni_base);
+    //printf("Local Address: ");
+    //print_mac(mac_local_base); 
+    //printf("\nUni Address: ");
+    //print_mac(mac_uni_base);
     printf("\nMAC Address: ");
     print_mac(mac_base);
     printf("\n");
@@ -244,8 +244,8 @@ int status_cmd(int argc, char **argv)
     printf("Target lime rate: %f mL/s\n\n", I2C_Driver::target_lime_rate_read_only);
     printf("Lime valve duty cycle: %f%%\n", I2C_Driver::duty_cycle_1 * 100.0f);
     printf("Wastewater valve duty cycle: %f%%\n", I2C_Driver::duty_cycle_2 * 100.0f);
-    printf("Valve shut-off switch: %s\n", (I2C_Driver::force_valves_off ? "ON" : "OFF"));
-
+    printf("Valve shut-off switch: %s\n\n", (I2C_Driver::force_valves_off ? "ON" : "OFF"));
+    printf("IP Address: %s\n", g_current_IP);
     return 0;
 }
 
