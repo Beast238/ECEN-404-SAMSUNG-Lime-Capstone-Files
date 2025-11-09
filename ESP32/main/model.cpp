@@ -155,8 +155,9 @@ static double poly_eval_cubic(double x)
 {
     // a3*x^3 + a2*x^2 + a1*x + a0
     // Changes 11/9
+    int FDutyCycle = 0.1f; //TODO connect with Alex to allow for variable FDutyCycle
     int temp = (double)s_poly[0]*x*x*x + (double)s_poly[1]*x*x + (double)s_poly[2]*x + (double)s_poly[3];
-    return temp*(0.115(DCycle*100)-0.0227)/(0.115(0.6*100)-0.0227) //normalize to calibrated dCycle (60%) to variable one
+    return temp*(0.115(FDutyCycle*100)-0.0227)/(0.115(0.6*100)-0.0227) //normalize to calibrated dCycle (60%) to variable one
     
 }
 
@@ -261,4 +262,5 @@ static void fluoride_watch_task(void* /*arg*/)
         vTaskDelay(pdMS_TO_TICKS(50));  // polling period; adjust if needed
     }
 }
+
 
