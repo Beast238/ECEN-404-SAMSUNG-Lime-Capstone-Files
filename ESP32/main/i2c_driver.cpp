@@ -141,12 +141,12 @@ void I2C_Driver::i2c_loop()
     if (ENABLE_DEBUG_LOGGING) printf("i2c loop start\n");
 
     // default 1.0f
-    I2C_Driver::set_wastewater_rate(1.0f);
+    if (!DEBUG_MODE) I2C_Driver::set_wastewater_rate(1.0f);
 
     while (true)
     {
         if (!I2C_Driver::i2c_ready) break;
-        
+
         //printf("setting valve to 1\n");
         if (ENABLE_VALVE_TWO) I2C_Driver::i2c_select_valve(1); // write 0x00 0x01 to 0x70 and read back
         //printf("setting dc of 1\n");
