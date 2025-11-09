@@ -155,11 +155,10 @@ static double poly_eval_cubic(double x)
 {
     // a3*x^3 + a2*x^2 + a1*x + a0
     // Changes 11/9
-    //int FDutyCycle = 0.1f; //TODO connect with Alex to allow for variable FDutyCycle
     double FDutyCycle = I2C_Driver::duty_cycle_2;
     int temp = (double)s_poly[0]*x*x*x + (double)s_poly[1]*x*x + (double)s_poly[2]*x + (double)s_poly[3];
+
     return temp*(0.115*(FDutyCycle*100)-0.0227)/(0.115*(0.6*100)-0.0227); //normalize to calibrated dCycle (60%) to variable one
-    
 }
 
 static PID pid_for_error(float err)
@@ -218,7 +217,11 @@ static void run_model_from_fluoride(float fluoride_ppm)
     const float dI = Ki * dt * err;
     // If you add derivative later: dD = Kd * ((e_k - 2e_{k-1} + e_{k-2}) / dt)
 
-    double u = s_u_last + (double)dP + (double)dI;
+    double u = s_u_last;
+    if (err < 30)
+    {
+        u = s_u_last + (double)dP + (double)dI;
+    }
 
     // Clamp to safe range with a small floor for CSTR
     if (!std::isfinite(u)) u = DOSE_MIN_FLOOR;
