@@ -1,6 +1,6 @@
 #include "custom_globals.h"
 
-volatile bool DEBUG_MODE = false;
+volatile bool DEBUG_MODE = true;
 volatile bool ENABLE_DEBUG_LOGGING = false;
 volatile bool ENABLE_INFO_LOGGING = false;
 
