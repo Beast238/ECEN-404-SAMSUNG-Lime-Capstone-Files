@@ -49,7 +49,7 @@ static float   s_change_threshold_ppm = 0.0f;   // trigger on any delta by defau
 static bool    s_watcher_started = false;
 
 // ---------- Control behavior ----------
-static bool        s_ff_done   = false;   // initial polynomial dose applied?
+volatile bool        s_ff_done   = false;   // initial polynomial dose applied?
 static double      s_u_last    = 0.0;     // last command (mL/s) == limeFlow(k-1)
 static TickType_t  s_last_tick = 0;       // for dt calculation
 
@@ -156,7 +156,7 @@ static double poly_eval_cubic(double x)
     // a3*x^3 + a2*x^2 + a1*x + a0
     // Changes 11/9
     double FDutyCycle = I2C_Driver::duty_cycle_2;
-    int temp = (double)s_poly[0]*x*x*x + (double)s_poly[1]*x*x + (double)s_poly[2]*x + (double)s_poly[3];
+    double temp = (double)s_poly[0]*x*x*x + (double)s_poly[1]*x*x + (double)s_poly[2]*x + (double)s_poly[3];
 
     return temp*(0.115*(FDutyCycle*100)-0.0227)/(0.115*(0.6*100)-0.0227); //normalize to calibrated dCycle (60%) to variable one
 }
@@ -178,10 +178,10 @@ static void run_model_from_fluoride(float fluoride_ppm)
     TickType_t now = xTaskGetTickCount();
     float dt = 0.0f;
     if (s_last_tick != 0) {
-        dt = (now - s_last_tick) * (portTICK_PERIOD_MS / 1000.0f);
-        if (dt <= 0.0f) dt = (portTICK_PERIOD_MS / 1000.0f);
+        dt = (now - s_last_tick) * (1000.0f / portTICK_PERIOD_MS);
+        if (dt <= 0.0f) dt = (1000.0f / portTICK_PERIOD_MS);
     } else {
-        dt = (portTICK_PERIOD_MS / 1000.0f);
+        dt = (1000.0f / portTICK_PERIOD_MS);
     }
     s_last_tick = now;
 
@@ -191,10 +191,9 @@ static void run_model_from_fluoride(float fluoride_ppm)
         s_u_last   = u_ff;       // this is limeFlow(k-1) for the next PID step
         s_prev_err = 0.0f;
         s_prev2_err= 0.0f;
-        s_ff_done  = true;
+        //s_ff_done  = true;
 
         if (ENABLE_DEBUG_LOGGING) printf("MODEL: INIT: FF-only | Fpred=%.2f ppm | u_ff=%.4f mL/s", Fpred_ppm, u_ff);
-        return;
     }
 
     // ---- 2) Proper incremental PI (no polynomial in the loop) ----
@@ -218,9 +217,11 @@ static void run_model_from_fluoride(float fluoride_ppm)
     // If you add derivative later: dD = Kd * ((e_k - 2e_{k-1} + e_{k-2}) / dt)
 
     double u = s_u_last;
-    if (err < 30)
+    if (abs(err) < 30)
     {
         u = s_u_last + (double)dP + (double)dI;
+        // start PID model for the first time once err < 30
+        s_ff_done = true;
     }
 
     // Clamp to safe range with a small floor for CSTR

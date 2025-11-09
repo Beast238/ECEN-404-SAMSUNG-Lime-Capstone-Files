@@ -9,6 +9,7 @@ extern "C" {
 //     volatile float g_fluoride_ppm = NAN;
 extern volatile float g_fluoride_ppm;
 extern volatile float g_flow_rate;
+extern volatile bool s_ff_done;
 
 // Call once at boot. Loads polynomial + PID tables from embedded files.
 void model_init(void);

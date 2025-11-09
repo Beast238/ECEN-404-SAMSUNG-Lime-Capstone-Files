@@ -238,6 +238,8 @@ int log_debug_cmd(int argc, char **argv)
 
 int status_cmd(int argc, char **argv)
 {
+    bool pidOn = s_ff_done;
+
     printf("SYSTEM STATUS:\n");
     printf("Current pH: %f\n", currentpH);
     printf("Current fluoride: %f ppm\n\n", g_fluoride_ppm);
@@ -245,6 +247,7 @@ int status_cmd(int argc, char **argv)
     printf("Lime valve duty cycle: %f%%\n", I2C_Driver::duty_cycle_1 * 100.0f);
     printf("Wastewater valve duty cycle: %f%%\n", I2C_Driver::duty_cycle_2 * 100.0f);
     printf("Valve shut-off switch: %s\n\n", (I2C_Driver::force_valves_off ? "ON" : "OFF"));
+    printf("PID: %s\n", (pidOn ? "ON" : "OFF"));
     printf("IP Address: %s\n", g_current_IP);
     return 0;
 }
