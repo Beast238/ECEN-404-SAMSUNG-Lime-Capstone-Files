@@ -371,7 +371,7 @@ void starttheWatch(double startTime) { //tickticktick.... This starts the watch'
         //displays corresponding pH value to the specific realtime since stopwatch started. It is important to note that this measured based on the sampling time.
         //when the user presses pause, it takes an instantaneous value(allowing for flexibility in the visualization/storage of this value for later). This is done in the pausethewatch function.
         
-        if (theData.length > 20) { //limits the number of points displayed on the realtime graph to be 20 at once.
+        if (theData.length > 200) { //limits the number of points displayed on the realtime graph to be 20 at once.
           theData.removeAt(0);// Removes the first point to ensure enough points fit on the graph. This dynamically changes the size of the graph, and ensures that the size is maintained.
         }
       });
@@ -452,7 +452,7 @@ void pausetheWatch() { //pauses the timer/stopwatch. If the light is off, that m
     //It is added here and NOT in stopthewatch to ensure it is added before the graph stops. Otherwise, it will not be added(in a timely way).
     //This is also a storage datapoint for the user to be able to save for later. It will always be stored, but it will only conditionally be displayed
     //A table implementation will be used later for the paused datapoints.
-    if(theData.length>20) {
+    if(theData.length>200) {
       theData.removeAt(0); //checks if there is more than 20 datapoints. Removes the first datapoint if there is more than 20 datapoints.
       //This check is done in this function as well, as values are still being added.
     }
@@ -718,9 +718,10 @@ IconButton(//this icon shows the symbol at the end of the text field(suffix)
 
       //child:,
     ),
-    Positioned(bottom: 333, right: 298, child: Text("Play/Pause"),),//label for the play/pause button
-    Positioned(bottom:333, right: 112, child: Text("SamplingTime Slider")),//label for sampling time slider.
+    Positioned(bottom: 318, right: 297, child: Text("Play/Pause"),),//label for the play/pause button
+    Positioned(bottom:318, right: 112, child: Text("SamplingTime Slider")),//label for sampling time slider.
 
+  //Positioned is relative to argument's location. Higher value, means farther from that argument.
 
     Positioned(bottom:70, right: 80, //positioned is used here, to position this dynamically changing datatable. This datatable will be used for filtering, the datatable will be used for paused values.
     child: 
@@ -1934,7 +1935,8 @@ int checklength=0;//this variable is used to determine the amount of entries act
 
 }
 
-bool myControlBool=false;//this bool variable represents what is going to be sent to the database. It depends on the user input.
+bool myControlBool=true;//this bool variable represents what is going to be sent to the database. It depends on the user input.
+//the default state is off.
 void changeButtonStatus(bool flag) async {//this will be used to send a motor signal to the database.
 //async will be used to send values to database timely
 
@@ -2014,7 +2016,7 @@ void dispose() {//destroys the current instance. This is done(similarly to the r
   ),
 
     
-    Padding(padding: EdgeInsets.only(left:32.5, top: 10, bottom: 10), child:Text("Choose the value that you would like to observe in the Data Table: ",style: TextStyle(fontSize: 17, color: Colors.purple),)),//this represents the title. Padding is placed to ensure that it is placed nicely into the UI
+    Padding(padding: EdgeInsets.only(left:32.5, top: 5, bottom: 10), child:Text("Choose the value that you would like to observe in the Data Table: ",style: TextStyle(fontSize: 17, color: Colors.purple),)),//this represents the title. Padding is placed to ensure that it is placed nicely into the UI
     SizedBox(width:230, //similar to the first textbox, there is a limited width to be used.
       child:
       DropdownMenu<SelectedVal>(//the second child in this column, will be a dropdown menu of the value choice
@@ -2037,7 +2039,7 @@ void dispose() {//destroys the current instance. This is done(similarly to the r
       )
 
       //this represents the user inputted number of table rows.
-      ,Padding(padding: EdgeInsets.only(left:20, top: 25, bottom: 10), child:Text("Enter the amount of entries you would like to see here(be sure to press Enter): ",style: TextStyle(fontSize: 17, color: Colors.purple),)),//this represents the title. Padding is placed to ensure that it is placed nicely into the UI
+      ,Padding(padding: EdgeInsets.only(left:20, top: 16, bottom: 10), child:Text("Enter the amount of entries you would like to see here(be sure to press Enter): ",style: TextStyle(fontSize: 17, color: Colors.purple),)),//this represents the title. Padding is placed to ensure that it is placed nicely into the UI
       //Note: in the case the amount of entries is not possible, an error message will popup explaining why its not. It will also state how many entries were ACTUALLY shown.
       SizedBox( //this box will be used to limit size of the text field
   width:230, //the textfield width is 230
@@ -2065,7 +2067,7 @@ void dispose() {//destroys the current instance. This is done(similarly to the r
   ),
 
 
-    Padding(padding: EdgeInsets.only(left:40, top: 10, bottom: 10), child:Text("Choose how far back you would like to see the values: ",style: TextStyle(fontSize: 17, color: Colors.purple),)),//this represents the title. Padding is placed to ensure that it is placed nicely into the UI
+    Padding(padding: EdgeInsets.only(left:40, top: 5, bottom: 10), child:Text("Choose how far back you would like to see the values: ",style: TextStyle(fontSize: 17, color: Colors.purple),)),//this represents the title. Padding is placed to ensure that it is placed nicely into the UI
     SizedBox(width:230, 
       child:
       DropdownMenu<TimeVal>(//the fourth child in this column, will be a dropdown menu of the time span choice.
@@ -2097,7 +2099,7 @@ void dispose() {//destroys the current instance. This is done(similarly to the r
 
       //The TimeStamp precision is a user choice of the amount of decimal places they want to see.
       //Padding is placed to ensure that it is properly working.
-    Padding(padding: EdgeInsets.only(left:35, top: 25, bottom: 0, right: 0), child:Text("Timestamp Precision in Milliseconds?",style: TextStyle(fontSize: 17, color: Colors.purple),)),//this represents the title. Padding is placed to ensure that it is placed nicely into the UI
+    Padding(padding: EdgeInsets.only(left:35, top: 15, bottom: 0, right: 0), child:Text("Timestamp Precision in Milliseconds?",style: TextStyle(fontSize: 17, color: Colors.purple),)),//this represents the title. Padding is placed to ensure that it is placed nicely into the UI
     SizedBox(width:230, //this provides the width of the checkbox.
       child:
       
