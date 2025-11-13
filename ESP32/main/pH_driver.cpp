@@ -16,7 +16,7 @@ volatile double currentpH = 0;
 double pH_driver_single_read()
 {
     adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_2_5);
+    adc1_config_channel_atten(ADC1_CHANNEL_0, ADC_ATTEN_DB_0);
     double sumOfReadings = 0;
     int numReadings = 500;
     for (int i = 0; i < numReadings; i++) // take 100 readings and average
@@ -36,7 +36,7 @@ void pH_driver_loop()
         //double pH = (val - 2608) / -140;
 
         double val = pH_driver_single_read();
-        double pH = (val - 2700) / -170;
+        double pH = (val - 2454) / -66.9;
         if (pH < 0) pH = 0;
         if (pH > 14) pH = 14;
 
