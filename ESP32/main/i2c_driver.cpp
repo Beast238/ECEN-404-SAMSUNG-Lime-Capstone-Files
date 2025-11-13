@@ -144,7 +144,7 @@ void I2C_Driver::i2c_loop()
     if (ENABLE_DEBUG_LOGGING) printf("i2c loop start\n");
 
     // default 1.0f
-    if (!DEBUG_MODE) I2C_Driver::set_wastewater_rate(1.0f);
+    I2C_Driver::set_wastewater_rate(0.6f);
 
     while (true)
     {

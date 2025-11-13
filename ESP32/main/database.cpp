@@ -54,6 +54,8 @@
 #define WIFI_PASS "" //this is the Wifi Password. For TAMU_IoT, there is no need for password.
 
 
+#define DB_CHECK_ERROR(x) { esp_err_t errthing = (x); if (errthing != ESP_OK) throw std::runtime_error("esp error"); }
+
 //Wifi Event start just means that the wifi will be successfully started up.
 //Wifi Event disconnected just means that wifi lost connection.
 
@@ -553,7 +555,7 @@ int wifi_init_phase(void) {//this function is the initalization phase of the pro
     //If there is no error, the thing inside Error check will simply execute, and the logic will continue.
 
     //WITHOUT ABORT IS USED TO ENSURE THE PROGRAM DOES NOT EXIT OUT if encountering minor error.
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_netif_init());//If there is no error then, the LWIP(stack) will be initialized. As stated above, this is the first step in the connection portion.
+    DB_CHECK_ERROR(esp_netif_init());//If there is no error then, the LWIP(stack) will be initialized. As stated above, this is the first step in the connection portion.
     //Note that this is crucial to communicate with iOT Devices(in this case/context, ESP32).
 
     esp_err_t status = esp_event_loop_create_default(); //If there is no error then, the event task(loop) will be initialized. As stated above, this is the second step in the connection portion.
@@ -578,7 +580,7 @@ int wifi_init_phase(void) {//this function is the initalization phase of the pro
 
     wifi_init_config_t myWifiEvent = WIFI_INIT_CONFIG_DEFAULT();//this sets up a wifi event that is in the default initial configuration. 
     //This is done for setup for the next line
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_init(&myWifiEvent));//this initializes the actual wifi task, once the above event is ready.
+    DB_CHECK_ERROR(esp_wifi_init(&myWifiEvent));//this initializes the actual wifi task, once the above event is ready.
 
     
 
@@ -594,13 +596,13 @@ int wifi_init_phase(void) {//this function is the initalization phase of the pro
     esp_event_handler_instance_t instance_my_ip;
 
     //This section of code is used for running event loop, and to do a test run.
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_instance_register(WIFI_EVENT,//the event base to check if this is WIFI_EVENT(explained in event handler portion)
+    DB_CHECK_ERROR(esp_event_handler_instance_register(WIFI_EVENT,//the event base to check if this is WIFI_EVENT(explained in event handler portion)
                                                         ESP_EVENT_ANY_ID,//this flag essentially allows for any ID to be used(meaning that it can be any type of Wifi event).
                                                         &my_Event_Handler, //this takes in the name of the event handling function that was built above
                                                         NULL,//this field is for data besides event data that is needed. Here, it is NULL as this simply checks if the event is properly configured. This is analagous to arg in the event handler function(data other than data in the actual file)
                                                         &instance_my_id));//simply an instance which relates to the values needed. myId is used here as the name, as this is really for any of the Wifi events.
 
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_event_handler_instance_register(IP_EVENT,//the event base to check if this is IP_EVENT(explained in event handler portion)
+    DB_CHECK_ERROR(esp_event_handler_instance_register(IP_EVENT,//the event base to check if this is IP_EVENT(explained in event handler portion)
                                                         IP_EVENT_STA_GOT_IP,//this flag essentially allows for checking if the IP Address is receievd.
                                                         &my_Event_Handler,//this takes in the name of the event handling function that was built above
                                                         NULL,//this field is for data besides event data that is needed. Here, it is NULL as this simply checks if the event is properly configured
@@ -621,15 +623,15 @@ int wifi_init_phase(void) {//this function is the initalization phase of the pro
         
     };
 
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_set_mode(WIFI_MODE_STA));//the first thing to specify is that the Wifi mode is station NOT AP
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_set_config(WIFI_IF_STA, &myWifiConfig));//the next thing is to essentially use the described event above, 
+    DB_CHECK_ERROR(esp_wifi_set_mode(WIFI_MODE_STA));//the first thing to specify is that the Wifi mode is station NOT AP
+    DB_CHECK_ERROR(esp_wifi_set_config(WIFI_IF_STA, &myWifiConfig));//the next thing is to essentially use the described event above, 
     //which represents the wifi settings in this case. WIFI_IF_STA means that a station interface will be connected to(it is a crucial parameter.)
 
     
     
     
     //This portion essentially finally starts the wifi task after it has been: initialized and configured
-    ESP_ERROR_CHECK_WITHOUT_ABORT(esp_wifi_start());//Error check is of course used here to ensure there are no errors.
+    DB_CHECK_ERROR(esp_wifi_start());//Error check is of course used here to ensure there are no errors.
     //Using intuition, this part will trigger the first case in the event handler.
 
     //there is no need to attempt a wifi connection after this, as the handler will account for it....
@@ -951,7 +953,7 @@ vTaskDelay(pdMS_TO_TICKS(5000));//5 sec delay until request starts.
 
 
         
-       vTaskDelay(pdMS_TO_TICKS(2000));//sets specific updates if needed to. CHANGE THIS IF NEEDED DURING INTEGRATION!!!!
+       vTaskDelay(pdMS_TO_TICKS(5000));//sets specific updates if needed to. CHANGE THIS IF NEEDED DURING INTEGRATION!!!!
 
     //}
 
@@ -964,7 +966,15 @@ void database_app_main_loop()
 {
     while (true)
     {
-        database_app_main();
+        try
+        {
+            database_app_main();
+        }
+        catch(...)
+        {
+            printf("Rebooting database due to exception\n");
+            continue;
+        }
     }
     vTaskDelete(NULL);
 }
