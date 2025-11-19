@@ -11,7 +11,8 @@ i2c_master_dev_handle_t I2C_Driver::duty_cycle_select_handle;
 volatile double I2C_Driver::target_lime_rate_read_only = 0;
 volatile double I2C_Driver::duty_cycle_1 = 0;
 volatile double I2C_Driver::duty_cycle_2 = 0;
-volatile bool I2C_Driver::force_valves_off = true; // don't let valves turn on until we get the all clear from the database
+volatile bool I2C_Driver::force_valves_off_from_db = true; // don't let valves turn on until we get the all clear from the database
+volatile bool I2C_Driver::force_valves_off_from_console = false;
 
 // called in model.cpp
 // valid from 0 gal dispersed to 0.75 gal dispersed
@@ -65,11 +66,11 @@ void I2C_Driver::set_duty_cycle_1(double dc) { I2C_Driver::duty_cycle_1 = dc; }
 void I2C_Driver::set_duty_cycle_2(double dc) { I2C_Driver::duty_cycle_2 = dc; }
 void I2C_Driver::set_force_valves_off(bool flag)
 {
-    if (flag != I2C_Driver::force_valves_off)
+    if (flag != I2C_Driver::force_valves_off_from_db)
     {
         if (ENABLE_INFO_LOGGING) printf("Valve shut-off switch is now %s\n", (flag ? "ON" : "OFF"));
     }
-    I2C_Driver::force_valves_off = flag;
+    I2C_Driver::force_valves_off_from_db = flag;
 }
 
 void I2C_Driver::i2c_write_byte(i2c_master_dev_handle_t handl, uint8_t dat)
@@ -83,13 +84,15 @@ void I2C_Driver::i2c_write_byte(i2c_master_dev_handle_t handl, uint8_t dat)
     uint8_t* write_buf = (uint8_t*)malloc(sizeof(uint8_t) * 2);
     write_buf[0] = 0x00; // reg addr
     write_buf[1] = dat;
-    esp_err_t err = i2c_master_transmit(handl, write_buf, 2, 1000);
-    free(write_buf);
-
-    if (err != ESP_OK)
+    try
     {
-        printf("Error during i2c write: %d\n", err);
+        i2c_master_transmit(handl, write_buf, 2, 1000);
     }
+    catch(...)
+    {
+        printf("Error during i2c write\n");
+    }
+    free(write_buf);
 }
 
 uint8_t I2C_Driver::i2c_read_byte(i2c_master_dev_handle_t handl)
@@ -101,10 +104,13 @@ uint8_t I2C_Driver::i2c_read_byte(i2c_master_dev_handle_t handl)
     }
     uint8_t* read_buf = (uint8_t*)malloc(sizeof(uint8_t));
 
-    esp_err_t err = i2c_master_receive(handl, read_buf, 1, 1000);
-    if (err != ESP_OK)
+    try
     {
-        printf("Error during i2c read: %d\n", err);
+        i2c_master_receive(handl, read_buf, 1, 1000);
+    }
+    catch (...)
+    {
+        printf("Error during i2c read\n");
         free(read_buf);
         return 0;
     }
@@ -150,17 +156,29 @@ void I2C_Driver::i2c_loop()
     {
         if (!I2C_Driver::i2c_ready) break;
 
-        //printf("setting valve to 1\n");
-        if (ENABLE_VALVE_TWO) I2C_Driver::i2c_select_valve(1); // write 0x00 0x01 to 0x70 and read back
-        //printf("setting dc of 1\n");
-        I2C_Driver::i2c_set_duty_cycle(I2C_Driver::force_valves_off ? 0.0f : I2C_Driver::duty_cycle_1); // write 0x00 0xXX to 0x48 and read back
-        //if (ENABLE_DEBUG_LOGGING) printf("dc 1: %f\n", I2C_Driver::duty_cycle_1);
+        try
+        {
+            bool force_valves_off = I2C_Driver::force_valves_off_from_db || I2C_Driver::force_valves_off_from_console;
 
-        if (ENABLE_VALVE_TWO)
-        {        
-            I2C_Driver::i2c_select_valve(8); // write 0x00 0x08 (ch3) to 0x70 and read back. currently hardware present is issue with ch1 (0x02) so currently using ch0 for valve 1 and ch3 for valve 2
-            I2C_Driver::i2c_set_duty_cycle(I2C_Driver::force_valves_off ? 0.0f : I2C_Driver::duty_cycle_2); // write 0x00 0xXX to 0x48 and read back
+            //printf("setting valve to 1\n");
+            if (ENABLE_VALVE_TWO) I2C_Driver::i2c_select_valve(1); // write 0x00 0x01 to 0x70 and read back
+            //printf("setting dc of 1\n");
+            I2C_Driver::i2c_set_duty_cycle(force_valves_off ? 0.0f : I2C_Driver::duty_cycle_1); // write 0x00 0xXX to 0x48 and read back
+            //if (ENABLE_DEBUG_LOGGING) printf("dc 1: %f\n", I2C_Driver::duty_cycle_1);
+
+            if (ENABLE_VALVE_TWO)
+            {        
+                I2C_Driver::i2c_select_valve(8); // write 0x00 0x08 (ch3) to 0x70 and read back. currently hardware present is issue with ch1 (0x02) so currently using ch0 for valve 1 and ch3 for valve 2
+                I2C_Driver::i2c_set_duty_cycle(force_valves_off ? 0.0f : I2C_Driver::duty_cycle_2); // write 0x00 0xXX to 0x48 and read back
+            }    
         }
+        catch(...)
+        {
+            printf("Caught unhandled exception in I2C driver, ignoring\n");
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            continue;
+        }
+        
 
         vTaskDelay(100 / portTICK_PERIOD_MS); // execute approximately 10 times a second
     }

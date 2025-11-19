@@ -236,6 +236,13 @@ int log_debug_cmd(int argc, char **argv)
     return 0;
 }
 
+int force_off_cmd(int argc, char **argv)
+{
+    I2C_Driver::force_valves_off_from_console = !I2C_Driver::force_valves_off_from_console;
+    printf("Forcing valves off from console: %s\n", (I2C_Driver::force_valves_off_from_console ? "ON" : "OFF"));
+    return 0;
+}
+
 int status_cmd(int argc, char **argv)
 {
     bool pidOn = s_ff_done;
@@ -246,9 +253,9 @@ int status_cmd(int argc, char **argv)
     printf("Target lime rate: %f mL/s\n\n", I2C_Driver::target_lime_rate_read_only);
     printf("Lime valve duty cycle: %f%%\n", I2C_Driver::duty_cycle_1 * 100.0f);
     printf("Wastewater valve duty cycle: %f%%\n", I2C_Driver::duty_cycle_2 * 100.0f);
-    printf("Valve shut-off switch: %s\n\n", (I2C_Driver::force_valves_off ? "ON" : "OFF"));
+    printf("Valve shut-off switch: %s\n\n", ((I2C_Driver::force_valves_off_from_console || I2C_Driver::force_valves_off_from_db) ? "ON" : "OFF"));
     printf("PID: %s\n", (pidOn ? "ON" : "OFF"));
-    printf("IP Address: %s\n", g_current_IP);
+    if (g_current_IP != nullptr) printf("IP Address: %s\n", g_current_IP);
     return 0;
 }
 
@@ -334,6 +341,13 @@ void init_console()
         .func = &status_cmd,
     };
     ESP_ERROR_CHECK(esp_console_cmd_register(&cmd9));
+    const esp_console_cmd_t cmd10 = {
+        .command = "off",
+        .help = "Force all valves off via command line (separate from db)",
+        .hint = NULL,
+        .func = &force_off_cmd,
+    };
+    ESP_ERROR_CHECK(esp_console_cmd_register(&cmd10));
 }
 
 extern "C" void app_main(void)

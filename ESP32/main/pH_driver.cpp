@@ -34,9 +34,10 @@ void pH_driver_loop()
     {
         //double pH = (val - 2861) / -160; // pH calibration curve results    
         //double pH = (val - 2608) / -140;
+        //double pH = (val - 2454) / -66.9;
 
         double val = pH_driver_single_read();
-        double pH = (val - 2454) / -66.9;
+        double pH = (val - 2486 - 110) / -110;
         if (pH < 0) pH = 0;
         if (pH > 14) pH = 14;
 

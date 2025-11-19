@@ -33,7 +33,8 @@ class I2C_Driver
         static volatile double target_lime_rate_read_only;
         static volatile double duty_cycle_1;
         static volatile double duty_cycle_2;
-        static volatile bool force_valves_off;
+        static volatile bool force_valves_off_from_db;
+        static volatile bool force_valves_off_from_console;
 
         static void set_lime_rate(double rate);
         static void set_wastewater_rate(double dc); // same as set_duty_cycle_2 
