@@ -1042,12 +1042,18 @@ List<DataRow> theRows=[];//this is a list of the Data Rows that will go into the
 DatabaseReference myDatabase=FirebaseDatabase.instance.ref('data');//This is the instance of the database. This code will read/write from this instance. 'data' is the name of the data stored in the database.
 DatabaseReference myDatabase2=FirebaseDatabase.instance.ref('data/Fluoride Data(ppm) added at ');
 
+
+
 //String currLabel="Cheers";
 
 
 @override
 void initState() {//initstate is used here to initalize a new state for the table. This is done when the program has first begun
   super.initState();
+
+  initFunc(true);//database status for valve control is off. This ensures that the valves are off.
+
+
   //addRows();//calling this function creates a new datatable at runtime
   
 }
@@ -1201,6 +1207,9 @@ String adjustpHFORTable(String val) {
   return val;
 }
 */
+
+
+
 
 
 void addRows() async{//this function continously updates the list, and changes when new additions are made to the database, or on a new runtime.
@@ -1955,6 +1964,30 @@ DatabaseReference myDatabase2=FirebaseDatabase.instance.ref('data'); //This is a
   });
 }
 
+void initFunc(bool flag) async {//this will be used to send a motor signal to the database.
+//async will be used to send values to database timely
+
+
+DatabaseReference myDatabase3=FirebaseDatabase.instance.ref('data');//for motor control flag
+
+
+
+String currTime2=dateFormat.format((DateTime.now()));//this represents the time that the valve shutoff switch was pressed.
+
+  await myDatabase3.update({ //this updates the values in .json format. 
+    "Valve Shutoff Status changed at ": currTime2,//shows the time the value of the motor control was changed at.
+    "Valve Shutoff Status ": (true).toString()//shows whether or not valves should be shut off. true means shutoff, false means not.
+  });
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2242,8 +2275,10 @@ class _TopTabsState extends State<TopTabs> {//this extends the statefulwidget, t
       bottom: const TabBar(//this goes on the bottom of the AppBar
       tabs:[//this instantiates a list of 3 tabs. These tabs are on the bottom of the appbar.
             //Icon is a display symbol used to represent the purpose of something.
-        Tab(icon: Icon(Icons.home)), //this is the tab icon on the top left, it represents the home page
-        Tab(icon: Icon(Icons.table_chart)), //represents the icon of a chart. This will be table page
+
+            //Table->Home
+        Tab(icon: Icon(Icons.table_chart)), //this is the tab icon on the top left, it represents the home page
+        Tab(icon: Icon(Icons.home)), //represents the icon of a chart. This will be table page
         //Tab(icon: Icon(Icons.directions_bike))//need to find other icons. May not be here: WILL SEE.
       ],
 
@@ -2263,8 +2298,12 @@ class _TopTabsState extends State<TopTabs> {//this extends the statefulwidget, t
     child:TabBarView(//tab bar view is used to show what is going to be shown when pressing the tab. body is used here to effectively specificy what content will be in the scaffold(body of the tab).
       children: [//tab values
         //Icon(Icons.directions_car),
-        const MyHomePage(title: 'Cheers',), //when the home tab is clicked, the home page is displayed. Cheers is a placeholder for now, as there needs to be a title in the homepage.
+
+
+        //Table->Home
         const TablePage(title2: 'Mate'),//when the tables tab is clicked, the table page is displayed. It will show the body of the tables tab.
+        const MyHomePage(title: 'Cheers',), //when the home tab is clicked, the home page is displayed. Cheers is a placeholder for now, as there needs to be a title in the homepage.
+        
         //const Icon(Icons.directions_bike)
       ]
 
